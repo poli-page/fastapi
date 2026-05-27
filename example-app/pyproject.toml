@@ -1,0 +1,15 @@
+[project]
+name = "poli-page-fastapi-example"
+version = "0.1.0"
+description = "Interactive demo of poli-page-fastapi against api-develop.poli.page"
+requires-python = ">=3.11"
+dependencies = [
+    "poli-page-fastapi",
+    "uvicorn[standard]>=0.27",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv.sources]
+# Path-installs — example-app always installs from local sources.
+poli-page-fastapi = { path = "..", editable = true }
+poli-page = { path = "../../sdk-python", editable = true }
