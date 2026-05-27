@@ -169,6 +169,37 @@ The example app's home page (`GET /`, returning an `HTMLResponse`) is a single-p
 
 **Do NOT** replace this with a README listing `curl` commands. Cross-cutting requirement from `INTEGRATIONS_PLAN.md` §"Cross-cutting DX patterns" §1.
 
+### 10.8 `Annotated[T, Depends(name)]` + PEP 563 — `name` MUST be module-scope
+
+With `from __future__ import annotations` (CLAUDE.md §6), parameter annotations are stored as strings. FastAPI's `Depends(...)` introspection calls `typing.get_type_hints(fn)` to resolve them, which evaluates the deferred string against the function's **globals** (plus its `__type_params__`), NOT its closure's local frame.
+
+```python
+# WRONG: dep is local — get_type_hints can't resolve it.
+def test_render() -> None:
+    dep = PoliPageDependency(settings=...)
+    app = FastAPI()
+
+    @app.get("/render")
+    def render(client: Annotated[PoliPage, Depends(dep)]) -> PdfResponse:  # ← 422 at runtime
+        ...
+```
+
+The symptom is a 422 response treating the parameter as a missing query field (`{"detail":[{"type":"missing","loc":["query","client"],...}]}`) — because FastAPI saw an unrecognised annotation and fell back to query-param interpretation.
+
+**Fix**: lift the dependency (and the route definition, since the route closes over it) to **module scope**, or use the older default-argument form (`client: PoliPage = Depends(dep)`) which works in any scope but trips ruff B008 unless ignored.
+
+```python
+# RIGHT: module-scope dep — resolvable via get_type_hints' globals.
+dep = PoliPageDependency(settings=...)
+app = FastAPI()
+
+@app.get("/render")
+def render(client: Annotated[PoliPage, Depends(dep)]) -> PdfResponse:
+    ...
+```
+
+This bit us in `tests/integration/test_render_against_develop_api.py` — the file's docstring records it.
+
 ## 11. When stuck
 
 - Re-read `docs/spec/fastapi-package-specification.md` first; most "open questions" are answered there or in §18 "Resolved decisions".
