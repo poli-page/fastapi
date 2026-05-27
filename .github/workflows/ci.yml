@@ -1,5 +1,4 @@
 name: CI
-
 on:
   push:
   pull_request:
@@ -11,44 +10,70 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12', '3.13']
+        python: ["3.11", "3.12", "3.13"]
+        fastapi: ["0.100", "0.110"]
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-
+          python-version: ${{ matrix.python }}
+      - uses: astral-sh/setup-uv@v3
       - name: Install
         run: |
-          python -m pip install --upgrade pip
           if [ -f pyproject.toml ]; then
-            pip install -e ".[dev]" 2>/dev/null || pip install -e . || echo "pyproject.toml exists but install failed — check it"
-          elif [ -f requirements-dev.txt ]; then
-            pip install -r requirements-dev.txt
-          elif [ -f requirements.txt ]; then
-            pip install -r requirements.txt
+            uv sync --all-extras
+            uv pip install "fastapi~=${{ matrix.fastapi }}.0"
           else
-            echo "No manifest yet — skipping install"
+            echo "Skipping install: no pyproject.toml yet"
           fi
-
       - name: Lint
         run: |
-          if python -m ruff --version >/dev/null 2>&1; then
-            python -m ruff check .
-            python -m ruff format --check .
+          if [ -f pyproject.toml ]; then
+            uv run ruff check .
           else
-            echo "ruff not installed — skipping lint"
+            echo "Skipping lint: no pyproject.toml yet"
+          fi
+      - name: Format
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv run ruff format --check .
+          else
+            echo "Skipping format: no pyproject.toml yet"
+          fi
+      - name: Type check
+        run: |
+          if [ -f pyproject.toml ] && [ -d src/poli_page_fastapi ]; then
+            uv run mypy src tests
+          else
+            echo "Skipping mypy: no src/poli_page_fastapi yet"
+          fi
+      - name: Unit tests
+        run: |
+          if [ -d tests/unit ] && [ -n "$(find tests/unit -name 'test_*.py' 2>/dev/null)" ]; then
+            uv run pytest tests/unit -v
+          else
+            echo "Skipping tests: no tests/unit/test_*.py yet"
           fi
 
-      - name: Test
+  integration:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: astral-sh/setup-uv@v3
+      - name: Install
         run: |
-          if python -m pytest --version >/dev/null 2>&1; then
-            if [ -d tests ] && find tests \( -name "test_*.py" -o -name "*_test.py" \) | grep -q .; then
-              python -m pytest -v
-            else
-              echo "pytest available but no tests yet — skipping"
-            fi
+          if [ -f pyproject.toml ]; then
+            uv sync --all-extras
+          fi
+      - name: Integration test against develop API
+        env:
+          POLI_PAGE_API_KEY: ${{ secrets.POLI_PAGE_DEVELOP_API_KEY }}
+        run: |
+          if [ -d tests/integration ] && [ -n "$(find tests/integration -name 'test_*.py' 2>/dev/null)" ]; then
+            uv run pytest tests/integration -v
           else
-            echo "pytest not installed — skipping test"
+            echo "Skipping integration tests: no tests/integration/test_*.py yet"
           fi

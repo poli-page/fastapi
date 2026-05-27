@@ -23,6 +23,9 @@ __pycache__/
 venv/
 .pytest_cache/
 .tox/
+.coverage
+.mypy_cache/
+.ruff_cache/
 
 # PHP
 vendor/
