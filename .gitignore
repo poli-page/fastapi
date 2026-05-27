@@ -40,3 +40,6 @@ bin/
 # Env
 .env
 .env.local
+
+# Example-app runtime artifacts
+example-app/output/
