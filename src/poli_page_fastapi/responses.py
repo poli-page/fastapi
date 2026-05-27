@@ -24,17 +24,23 @@ class PdfResponse(Response):
         self,
         content: bytes,
         *,
+        status_code: int = 200,
         filename: str = "document.pdf",
         inline: bool = False,
         background: BackgroundTask | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
+        # Why: status_code is also exposed so FastAPI's OpenAPI generator can
+        # discover the default response status when this class is used as
+        # `response_class=PdfResponse` (otherwise /openapi.json returns 500
+        # — UnboundLocalError in fastapi/openapi/utils.py).
         merged: dict[str, str] = dict(headers or {})
         merged["Content-Disposition"] = build_content_disposition(filename, inline=inline)
         for k, v in _PDF_DEFAULT_HEADERS.items():
             merged.setdefault(k, v)
         super().__init__(
             content=content,
+            status_code=status_code,
             media_type="application/pdf",
             headers=merged,
             background=background,
@@ -50,6 +56,7 @@ class PdfStreamResponse(StreamingResponse):
         self,
         content: Iterator[bytes] | AsyncIterator[bytes],
         *,
+        status_code: int = 200,
         filename: str = "document.pdf",
         inline: bool = False,
         background: BackgroundTask | None = None,
@@ -61,6 +68,7 @@ class PdfStreamResponse(StreamingResponse):
             merged.setdefault(k, v)
         super().__init__(
             content=content,
+            status_code=status_code,
             media_type="application/pdf",
             headers=merged,
             background=background,
@@ -76,6 +84,7 @@ class PreviewResponse(Response):
         self,
         content: str,
         *,
+        status_code: int = 200,
         background: BackgroundTask | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
@@ -84,6 +93,7 @@ class PreviewResponse(Response):
         merged.setdefault("X-Content-Type-Options", "nosniff")
         super().__init__(
             content=content,
+            status_code=status_code,
             media_type="text/html; charset=utf-8",
             headers=merged,
             background=background,

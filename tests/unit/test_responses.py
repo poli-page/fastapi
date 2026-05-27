@@ -78,3 +78,38 @@ def test_document_redirect_response_default() -> None:
 def test_document_redirect_response_permanent() -> None:
     resp = DocumentRedirectResponse("https://s3.example.com/doc.pdf", permanent=True)
     assert resp.status_code == 308
+
+
+def test_response_classes_yield_valid_openapi_schema() -> None:
+    """Regression: response_class=Pdf/PdfStream/PreviewResponse must not crash
+    FastAPI's OpenAPI schema generation.
+
+    FastAPI's get_openapi_path() inspects `response_class.__init__` for a
+    `status_code` parameter; absence of one references an uninitialised
+    local variable (UnboundLocalError at fastapi/openapi/utils.py). Symptom
+    in the demo app: /openapi.json returns 500 and /docs (Swagger UI) shows
+    "Failed to load API definition".
+    """
+    from fastapi import FastAPI
+
+    app = FastAPI()
+
+    @app.get("/pdf", response_class=PdfResponse)
+    def _pdf() -> PdfResponse:
+        return PdfResponse(b"%PDF-1.4\n", filename="x.pdf")
+
+    @app.get("/stream", response_class=PdfStreamResponse)
+    def _stream() -> PdfStreamResponse:
+        def gen() -> Iterator[bytes]:
+            yield b"%PDF"
+
+        return PdfStreamResponse(gen(), filename="x.pdf")
+
+    @app.get("/preview", response_class=PreviewResponse)
+    def _preview() -> PreviewResponse:
+        return PreviewResponse("<p>x</p>")
+
+    schema = app.openapi()
+    assert "/pdf" in schema["paths"]
+    assert "/stream" in schema["paths"]
+    assert "/preview" in schema["paths"]
