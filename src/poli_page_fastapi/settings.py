@@ -23,6 +23,7 @@ class PoliPageSettings(BaseSettings):
         env_file=None,
         case_sensitive=False,
         extra="ignore",
+        populate_by_name=True,
     )
 
     api_key: str | None = Field(default=None, alias="POLI_PAGE_API_KEY")

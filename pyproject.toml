@@ -91,6 +91,7 @@ select = ["E", "F", "W", "I", "B", "UP", "RUF", "SIM"]
 python_version = "3.11"
 strict = true
 files = ["src", "tests"]
+plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"
