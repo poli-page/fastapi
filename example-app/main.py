@@ -625,10 +625,11 @@ DASHBOARD_HTML = """<!doctype html>
     },
     'doc-get': async target => {
       if (!state.docId) return;
-      const r = await fetch(`/documents/${state.docId}`, { redirect: 'follow' });
-      if (!r.ok) return renderError(target, `HTTP ${r.status}`);
-      const blob = await r.blob();
-      renderIframe(target, URL.createObjectURL(blob), 'stored pdf', `${blob.size.toLocaleString()} bytes`);
+      // Why: /documents/{id} returns a 302 to a presigned S3 URL. Fetching
+      // and following from JS hits CORS (S3 doesn't send CORS headers).
+      // <iframe> navigation isn't a fetch, so the browser follows the
+      // redirect natively. Trade-off: no byte-count in the label.
+      renderIframe(target, `/documents/${state.docId}`, 'stored pdf', 'served via 302 → presigned S3 URL');
     },
     'doc-preview': async target => {
       if (!state.docId) return;
