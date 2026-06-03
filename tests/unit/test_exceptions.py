@@ -67,23 +67,34 @@ def test_api_status_error_maps_to_same_status(exc_cls: type[PoliPageError], stat
     assert isinstance(resp, JSONResponse)
     assert resp.status_code == status
     body = _body(resp)
-    assert body == {"code": "TEST_CODE", "message": "failure", "request_id": "req_abc"}
+    assert body == {
+        "code": "TEST_CODE",
+        "message": "failure",
+        "status": status,
+        "requestId": "req_abc",
+    }
 
 
-def test_api_connection_error_maps_to_502() -> None:
+def test_api_connection_error_maps_to_503() -> None:
     exc = APIConnectionError("connection refused", code="network_error")
     resp = poli_page_exception_handler(_fake_request(), exc)
-    assert resp.status_code == 502
+    assert resp.status_code == 503
     body = _body(resp)
-    assert body == {"code": "network_error", "message": "connection refused", "request_id": None}
+    assert body == {
+        "code": "network_error",
+        "message": "connection refused",
+        "status": 503,
+        "requestId": None,
+    }
 
 
-def test_api_timeout_error_maps_to_502() -> None:
+def test_api_timeout_error_maps_to_504() -> None:
     exc = APITimeoutError("deadline exceeded", code="timeout")
     resp = poli_page_exception_handler(_fake_request(), exc)
-    assert resp.status_code == 502
+    assert resp.status_code == 504
     body = _body(resp)
     assert body["code"] == "timeout"
+    assert body["status"] == 504
 
 
 def test_base_poli_page_error_maps_to_500() -> None:
@@ -91,7 +102,12 @@ def test_base_poli_page_error_maps_to_500() -> None:
     resp = poli_page_exception_handler(_fake_request(), exc)
     assert resp.status_code == 500
     body = _body(resp)
-    assert body == {"code": "invalid_options", "message": "bad config", "request_id": None}
+    assert body == {
+        "code": "invalid_options",
+        "message": "bad config",
+        "status": 500,
+        "requestId": None,
+    }
 
 
 def test_non_poli_page_error_returns_500() -> None:
@@ -108,8 +124,9 @@ def test_response_has_no_store_cache_header() -> None:
     assert resp.headers["cache-control"] == "no-store, private"
 
 
-def test_request_id_optional() -> None:
+def test_request_id_is_camel_case_on_wire() -> None:
     exc = BadRequestError("x", code="X", status=400)
     resp = poli_page_exception_handler(_fake_request(), exc)
     body = _body(resp)
-    assert body["request_id"] is None
+    assert "request_id" not in body
+    assert body["requestId"] is None

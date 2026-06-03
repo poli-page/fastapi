@@ -12,37 +12,38 @@ from __future__ import annotations
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from poli_page import APIConnectionError, APIStatusError, PoliPageError
+from poli_page import PoliPageError
 
 
 def poli_page_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Map any PoliPageError to a typed JSON response.
+    """Map any PoliPageError to a canonical JSON response.
 
-    Status code: matches exc.status for APIStatusError; 502 for
-    APIConnectionError / APITimeoutError; 500 for the base PoliPageError
-    (validation / programming errors). Body shape mirrors the SDK's own
-    error structure, plus request_id (null when absent).
+    Body shape: `{code, message, status, requestId}` (camelCase on the wire).
+    Status: from the SDK's `to_payload()` — the API status for `APIStatusError`,
+    503 for connection failures, 504 for timeouts. Non-`PoliPageError`
+    exceptions surface as a 500 with `code="UNKNOWN"`.
     """
     if not isinstance(exc, PoliPageError):
         return JSONResponse(
             status_code=500,
-            content={"code": "UNKNOWN", "message": str(exc), "request_id": None},
+            content={
+                "code": "UNKNOWN",
+                "message": str(exc),
+                "status": 500,
+                "requestId": None,
+            },
             headers={"Cache-Control": "no-store, private"},
         )
 
-    if isinstance(exc, APIStatusError) and exc.status is not None:
-        status_code = exc.status
-    elif isinstance(exc, APIConnectionError):
-        status_code = 502
-    else:
-        status_code = 500
-
+    payload = exc.to_payload()
+    status_code = payload["status"] or 500
     return JSONResponse(
         status_code=status_code,
         content={
-            "code": exc.code,
-            "message": exc.message,
-            "request_id": exc.request_id,
+            "code": payload["code"],
+            "message": payload["message"],
+            "status": status_code,
+            "requestId": payload["request_id"],
         },
         headers={"Cache-Control": "no-store, private"},
     )
