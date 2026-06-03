@@ -516,7 +516,7 @@ DASHBOARD_HTML = """<!doctype html>
 
   <section>
     <div class="head">
-      <h2>Command line <span class="label">05 · console</span></h2>
+      <h2>Command line <span class="label">05 · CLI</span></h2>
       <p class="desc">
         FastAPI ships no per-app CLI — <code>uvicorn</code> is the smoke test.
         Copy these into a terminal alongside this server.
