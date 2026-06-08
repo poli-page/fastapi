@@ -43,7 +43,7 @@ def poli_page_exception_handler(request: Request, exc: Exception) -> JSONRespons
             "code": payload["code"],
             "message": payload["message"],
             "status": status_code,
-            "requestId": payload["request_id"],
+            "requestId": payload["requestId"],
         },
         headers={"Cache-Control": "no-store, private"},
     )
