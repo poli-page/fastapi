@@ -1,7 +1,7 @@
 [project]
 name = "poli-page-fastapi-example"
 version = "0.1.0"
-description = "Interactive demo of poli-page-fastapi against api-develop.poli.page"
+description = "Interactive demo of poli-page-fastapi"
 requires-python = ">=3.11"
 dependencies = [
     "poli-page-fastapi",

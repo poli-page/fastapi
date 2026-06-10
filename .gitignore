@@ -43,3 +43,6 @@ bin/
 
 # Example-app runtime artifacts
 example-app/output/
+CLAUDE.md
+docs/plan/
+docs/spec/

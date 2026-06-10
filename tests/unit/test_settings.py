@@ -39,9 +39,9 @@ def test_bad_prefix_api_key_raises(monkeypatch: pytest.MonkeyPatch, bad_key: str
 
 def test_base_url_read(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("POLI_PAGE_API_KEY", "pp_test_x")
-    monkeypatch.setenv("POLI_PAGE_BASE_URL", "https://api-develop.poli.page")
+    monkeypatch.setenv("POLI_PAGE_BASE_URL", "https://api.example.com")
     settings = PoliPageSettings()
-    assert settings.base_url == "https://api-develop.poli.page"
+    assert settings.base_url == "https://api.example.com"
 
 
 @pytest.mark.parametrize("bad_timeout", [0, -1, 601, 1000])
@@ -70,13 +70,13 @@ def test_retry_delay_out_of_range_raises(monkeypatch: pytest.MonkeyPatch, bad_de
 
 def test_all_options_set(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("POLI_PAGE_API_KEY", "pp_test_x")
-    monkeypatch.setenv("POLI_PAGE_BASE_URL", "https://api-develop.poli.page")
+    monkeypatch.setenv("POLI_PAGE_BASE_URL", "https://api.example.com")
     monkeypatch.setenv("POLI_PAGE_TIMEOUT", "45")
     monkeypatch.setenv("POLI_PAGE_MAX_RETRIES", "5")
     monkeypatch.setenv("POLI_PAGE_RETRY_DELAY", "0.25")
     settings = PoliPageSettings()
     assert settings.api_key == "pp_test_x"
-    assert settings.base_url == "https://api-develop.poli.page"
+    assert settings.base_url == "https://api.example.com"
     assert settings.timeout == 45.0
     assert settings.max_retries == 5
     assert settings.retry_delay == 0.25

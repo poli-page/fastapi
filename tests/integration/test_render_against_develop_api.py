@@ -1,7 +1,8 @@
-"""One end-to-end test against api-develop.poli.page.
+"""One end-to-end test against the live API.
 
 Skipped automatically when POLI_PAGE_API_KEY is unset. Refuses to run with
-a pp_live_* key. See spec §14.1.
+a pp_live_* key. Target a non-default environment by setting
+POLI_PAGE_TEST_BASE_URL.
 """
 
 from __future__ import annotations
@@ -35,17 +36,18 @@ def _check_test_key() -> str:
 
 
 def _make_dep() -> PoliPageDependency:
-    """Build a PoliPageDependency pinned to api-develop.poli.page.
+    """Build a PoliPageDependency for the configured test environment.
 
     Module-scope (called immediately below) so that FastAPI's get_type_hints
     pass can resolve `dep` from globals when introspecting the route's
     Annotated[..., Depends(dep)] annotation — locally-scoped dependencies
     don't resolve under `from __future__ import annotations` (PEP 563).
     """
-    settings = PoliPageSettings.model_construct(
-        api_key=os.environ.get("POLI_PAGE_API_KEY", ""),
-        base_url="https://api-develop.poli.page",
-    )
+    fields: dict[str, str] = {"api_key": os.environ.get("POLI_PAGE_API_KEY", "")}
+    test_base_url = os.environ.get("POLI_PAGE_TEST_BASE_URL")
+    if test_base_url:
+        fields["base_url"] = test_base_url
+    settings = PoliPageSettings.model_construct(**fields)
     return PoliPageDependency(settings=settings)
 
 
