@@ -1,6 +1,6 @@
 """One end-to-end test against the live API.
 
-Skipped automatically when POLI_PAGE_API_KEY is unset. Refuses to run with
+Skipped automatically when POLI_PAGE_API_KEY is unset or empty. Refuses to run with
 a pp_live_* key. Target a non-default environment by setting
 POLI_PAGE_TEST_BASE_URL.
 """
@@ -23,7 +23,7 @@ from poli_page_fastapi import (
 )
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("POLI_PAGE_API_KEY") is None,
+    not os.environ.get("POLI_PAGE_API_KEY"),
     reason="POLI_PAGE_API_KEY env var not set",
 )
 
