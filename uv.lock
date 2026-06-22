@@ -677,26 +677,15 @@ wheels = [
 
 [[package]]
 name = "poli-page"
-source = { editable = "../sdk-python" }
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "build", marker = "extra == 'dev'", specifier = ">=1" },
-    { name = "httpx", specifier = ">=0.25,<1.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "pdoc", marker = "extra == 'dev'", specifier = ">=14" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1,<1.2" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5" },
-    { name = "respx", marker = "extra == 'dev'", specifier = ">=0.21" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
-    { name = "twine", marker = "extra == 'dev'", specifier = ">=5" },
+sdist = { url = "https://files.pythonhosted.org/packages/92/29/80923b0dc8ed40e92b23b09982d4d477e452f5f6d1e6e64bff245d70a495/poli_page-0.9.0.tar.gz", hash = "sha256:efee904106345de579032f48b63e8650e6b2a650c7ebe220657b895e7c03e6df", size = 72769, upload-time = "2026-06-19T10:02:41.466Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9d/fd/9ca9f3ba31d7b1582e7557ebf6dda3007a33f824f4d7468cf8c23ba2dc5a/poli_page-0.9.0-py3-none-any.whl", hash = "sha256:755f1ab56a86e6ca3ee992a83d91ade6612d858d29c6b7b2a916575d7807d913", size = 32141, upload-time = "2026-06-19T10:02:40.149Z" },
 ]
-provides-extras = ["dev"]
 
 [[package]]
 name = "poli-page-fastapi"
@@ -728,7 +717,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.100,<1.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.25" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "poli-page", editable = "../sdk-python" },
+    { name = "poli-page", specifier = ">=0.9,<2" },
     { name = "pydantic", specifier = ">=2.0,<3" },
     { name = "pydantic-settings", specifier = ">=2.0,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },

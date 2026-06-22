@@ -43,11 +43,10 @@ def _make_dep() -> PoliPageDependency:
     Annotated[..., Depends(dep)] annotation — locally-scoped dependencies
     don't resolve under `from __future__ import annotations` (PEP 563).
     """
-    fields: dict[str, str] = {"api_key": os.environ.get("POLI_PAGE_API_KEY", "")}
-    test_base_url = os.environ.get("POLI_PAGE_TEST_BASE_URL")
-    if test_base_url:
-        fields["base_url"] = test_base_url
-    settings = PoliPageSettings.model_construct(**fields)
+    settings = PoliPageSettings.model_construct(
+        api_key=os.environ.get("POLI_PAGE_API_KEY", ""),
+        base_url=os.environ.get("POLI_PAGE_TEST_BASE_URL"),
+    )
     return PoliPageDependency(settings=settings)
 
 
