@@ -164,7 +164,7 @@ The following deep dives are forthcoming under `docs/`:
 | --------------- | ---------------------- | ------------------- |
 | 0.1.x           | `^0.100`, `^0.110`     | 3.11, 3.12, 3.13    |
 
-Tested against the FastAPI versions listed above; other 0.x releases in that range are expected to work. The SDK is pinned to `poli-page>=1.0,<2`.
+Tested against the FastAPI versions listed above; other 0.x releases in that range are expected to work. The SDK is pinned to `poli-page>=0.9,<2`.
 
 ## Contributing
 

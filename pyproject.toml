@@ -29,7 +29,7 @@ dependencies = [
     "fastapi>=0.100,<1.0",
     "pydantic>=2.0,<3",
     "pydantic-settings>=2.0,<3",
-    "poli-page>=1.0,<2",
+    "poli-page>=0.9,<2",
 ]
 
 [project.optional-dependencies]
@@ -55,7 +55,7 @@ Changelog = "https://github.com/poli-page/fastapi/blob/main/CHANGELOG.md"
 
 [tool.uv.sources]
 # poli-page isn't on PyPI yet. Point uv at the sibling checkout for local dev;
-# remove this block once the SDK ships and the `poli-page>=1.0,<2` dep resolves
+# remove this block once the SDK ships and the `poli-page>=0.9,<2` dep resolves
 # from PyPI normally. See CLAUDE.md §9.
 poli-page = { path = "../sdk-python", editable = true }
 
