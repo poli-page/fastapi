@@ -1,0 +1,95 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit config for poli-page repos. PRs here are mostly opened and fixed by automated agents
+# (the poli-page auto loop and issue pipeline), which read CodeRabbit's findings and its commit status.
+language: en-US
+early_access: false
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  allow_author_approval: true
+  # The summary goes in the walkthrough, never in the PR description: the merge gate reads the description.
+  high_level_summary: false
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  review_details: false
+  # The loop decides "reviewed this head" from the CodeRabbit commit status ("Review completed").
+  review_progress: true
+  commit_status: true
+  fail_commit_status: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  # PR labels are the closed issues' labels; CodeRabbit only suggests.
+  auto_apply_labels: false
+  suggested_reviewers: true
+  auto_assign_reviewers: false
+  in_progress_fortune: false
+  poem: false
+  enable_prompt_for_ai_agents: true
+  abort_on_close: true
+  disable_cache: false
+  slop_detection:
+    enabled: true
+    include_all_authors: false
+  auto_review:
+    enabled: true
+    drafts: false
+    # Every push of a fix round must be reviewed, and never auto-paused (the loop allows up to 5 rounds).
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 0
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+  path_filters:
+    - "!**/uv.lock"
+    - "!**/.venv/**"
+    - "!**/__pycache__/**"
+    - "!**/.pytest_cache/**"
+    - "!**/.mypy_cache/**"
+    - "!**/.ruff_cache/**"
+    - "!**/*.egg-info/**"
+    - "!dist/**"
+    - "!build/**"
+    - "!.coverage"
+  path_instructions:
+    - path: "src/poli_page_fastapi/**/*.py"
+      instructions: >-
+        Thin FastAPI wrapper around the poli-page Python SDK: the SDK owns transport, retries,
+        error classification and streaming, so do not reimplement them here. The public API is
+        what __init__.py exports; flag breaking changes without a major version bump and CHANGELOG
+        entry. Keep type hints strict (py.typed is shipped) and support Python 3.11-3.13,
+        FastAPI >=0.100 and pydantic v2.
+    - path: "src/poli_page_fastapi/{exceptions,responses,_headers}.py"
+      instructions: >-
+        SDK errors must surface as typed JSON responses matching the API error shape
+        ({ error: { code } }). PDF responses must send the correct Content-Type, an RFC 5987
+        Content-Disposition (non-ASCII and quote-safe filenames, no header injection) and
+        Cache-Control.
+    - path: "src/poli_page_fastapi/{settings,dependencies,lifespan}.py"
+      instructions: >-
+        The API key comes only from POLI_PAGE_* env vars and must start with pp_test_ or pp_live_;
+        never log or echo it. The client factory is memoised and must be closed cleanly in lifespan.
+        Settings bounds (timeout, max_retries, retry_delay) must match the README table.
+    - path: "tests/**/*.py"
+      instructions: >-
+        Every public symbol needs unit tests, including failure paths. Unit tests must not hit the
+        network; only tests/integration may call the develop API, and they must read credentials
+        from env vars, never hardcode keys.
+    - path: "example-app/**"
+      instructions: >-
+        Sample code that customers copy: it must be correct, idiomatic FastAPI, use env vars for
+        the API key (no secrets committed), and stay consistent with the README and the package's
+        current public API.
+    - path: "README.md"
+      instructions: >-
+        Must stay accurate: code samples runnable against the current API, and the configuration
+        table consistent with settings.py.
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns: []
