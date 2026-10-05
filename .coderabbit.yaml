@@ -67,7 +67,7 @@ reviews:
     - path: "src/poli_page_fastapi/{exceptions,responses,_headers}.py"
       instructions: >-
         SDK errors must surface as typed JSON responses matching the API error shape
-        ({ error: { code } }). PDF responses must send the correct Content-Type, an RFC 5987
+        ({ error: CODE_STRING, detail?, issues? } (flat, API spec §4.1)). PDF responses must send the correct Content-Type, an RFC 5987
         Content-Disposition (non-ASCII and quote-safe filenames, no header injection) and
         Cache-Control.
     - path: "src/poli_page_fastapi/{settings,dependencies,lifespan}.py"
