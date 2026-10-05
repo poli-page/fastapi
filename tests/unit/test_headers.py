@@ -42,6 +42,56 @@ def test_rfc5987_encoding(filename: str, expected_encoded: str) -> None:
     assert expected_encoded in result
 
 
-def test_filename_with_quotes_escaped() -> None:
-    result = build_content_disposition('he"llo.pdf')
-    assert result == 'attachment; filename="he"llo.pdf"'
+@pytest.mark.parametrize(
+    ("filename", "expected"),
+    [
+        pytest.param(
+            'say "hi".pdf',
+            'attachment; filename="say \\"hi\\".pdf"',
+            id="double-quote-is-escaped",
+        ),
+        pytest.param(
+            "a\\b.pdf",
+            'attachment; filename="a\\\\b.pdf"',
+            id="backslash-is-escaped",
+        ),
+        pytest.param(
+            "evil.pdf\r\nSet-Cookie: sid=1",
+            'attachment; filename="evil.pdfSet-Cookie: sid=1"',
+            id="crlf-is-stripped",
+        ),
+        pytest.param(
+            "tab\there\x00\x1f\x7f.pdf",
+            'attachment; filename="tabhere.pdf"',
+            id="control-chars-are-stripped",
+        ),
+        pytest.param(
+            'x.pdf"; filename="pwn.exe',
+            'attachment; filename="x.pdf\\"; filename=\\"pwn.exe"',
+            id="parameter-injection-stays-inside-the-quoted-string",
+        ),
+        pytest.param(
+            "résumé François.pdf",
+            'attachment; filename="r?sum? Fran?ois.pdf"; '
+            "filename*=UTF-8''r%C3%A9sum%C3%A9%20Fran%C3%A7ois.pdf",
+            id="non-ascii-uses-rfc5987-dual-notation",
+        ),
+        pytest.param(
+            'résumé "final"\\v2.pdf',
+            'attachment; filename="r?sum? \\"final\\"\\\\v2.pdf"; '
+            "filename*=UTF-8''r%C3%A9sum%C3%A9%20%22final%22%5Cv2.pdf",
+            id="non-ascii-fallback-is-escaped",
+        ),
+        pytest.param(
+            "résumé\r\n\x85.pdf",
+            "attachment; filename=\"r?sum?.pdf\"; filename*=UTF-8''r%C3%A9sum%C3%A9.pdf",
+            id="non-ascii-control-chars-are-stripped-from-both-forms",
+        ),
+    ],
+)
+def test_content_disposition_is_rfc6266_safe(filename: str, expected: str) -> None:
+    assert build_content_disposition(filename) == expected
+
+
+def test_inline_content_disposition_is_escaped() -> None:
+    assert build_content_disposition('q"\r\n.pdf', inline=True) == 'inline; filename="q\\".pdf"'
