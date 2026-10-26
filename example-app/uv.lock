@@ -170,26 +170,11 @@ wheels = [
 
 [[package]]
 name = "poli-page"
-source = { editable = "../../sdk-python" }
+version = "0.9.0"
+source = { git = "https://github.com/poli-page/sdk-python?rev=f47d94d78f1d6c14232c7ad8c6522d753041d125#f47d94d78f1d6c14232c7ad8c6522d753041d125" }
 dependencies = [
     { name = "httpx" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "build", marker = "extra == 'dev'", specifier = ">=1" },
-    { name = "httpx", specifier = ">=0.25,<1.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "pdoc", marker = "extra == 'dev'", specifier = ">=14" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1,<1.2" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5" },
-    { name = "respx", marker = "extra == 'dev'", specifier = ">=0.21" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
-    { name = "twine", marker = "extra == 'dev'", specifier = ">=5" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "poli-page-fastapi"
@@ -207,7 +192,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.100,<1.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.25" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "poli-page", editable = "../../sdk-python" },
+    { name = "poli-page", git = "https://github.com/poli-page/sdk-python?rev=f47d94d78f1d6c14232c7ad8c6522d753041d125" },
     { name = "pydantic", specifier = ">=2.0,<3" },
     { name = "pydantic-settings", specifier = ">=2.0,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },

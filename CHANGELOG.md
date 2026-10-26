@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (breaking)
+- `PoliPageSettings` accepts environment keys (`pp_{environment}_{32 lowercase hex}`, for example `pp_sandbox_…`, `pp_live_…`, `pp_staging_…`). It no longer raises on a key that is not `pp_test_…` / `pp_live_…`: a missing or empty `POLI_PAGE_API_KEY` still fails when the client is built, any other value is accepted, and a value that does not match the key format logs one warning (showing at most its `pp_{environment}_` part, never the secret) before the API decides.
+- Requires the `poli-page` SDK without template versions: render inputs carry no `version` and `render.preview` is gone. Until that SDK release is published, development builds against sdk-python main through `[tool.uv.sources]`.
+- `PreviewResponse` is documented for `client.documents.preview` (the stored HTML of a rendered document).
+- Example app: no `version` in any render; `GET /errors/not-found` (template `does-not-exist`, `404 TEMPLATE_NOT_FOUND`) replaces `GET /errors/bad-version`.
+- The integration test runs only with a sandbox key (`pp_sandbox_…`).
+
+### Removed
+- Example app: `GET /render/preview` and its dashboard button (`render.preview` no longer exists in the SDK).
+
 ### Fixed
 - `PdfResponse` / `PdfStreamResponse`: the `Content-Disposition` filename is now escaped per RFC 6266 / RFC 9110 (`\` and `"` as quoted-pairs, ASCII fallback included) and stripped of control characters (CR/LF, TAB, DEL, C1), so a filename can no longer break the header or inject parameters.
 

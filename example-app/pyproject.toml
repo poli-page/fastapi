@@ -10,6 +10,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-# Path-installs — example-app always installs from local sources.
+# example-app installs poli-page-fastapi from the local source. poli-page is pinned to
+# sdk-python main (as in ../pyproject.toml) until the release from poli-page/sdk-python#11.
 poli-page-fastapi = { path = "..", editable = true }
-poli-page = { path = "../../sdk-python", editable = true }
+poli-page = { git = "https://github.com/poli-page/sdk-python", rev = "f47d94d78f1d6c14232c7ad8c6522d753041d125" }

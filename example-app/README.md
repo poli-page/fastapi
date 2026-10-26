@@ -16,8 +16,13 @@ Then open <http://localhost:8000>.
 
 ## Env
 
-Set `POLI_PAGE_API_KEY=pp_test_...` in the workspace-root `.env` (two levels
-up from `example-app/`). Real shell exports always win.
+Set `POLI_PAGE_API_KEY` to a sandbox key (`pp_sandbox_...`) in the workspace-root
+`.env` (two levels up from `example-app/`). `POLI_PAGE_BASE_URL` is optional. Real
+shell exports always win.
+
+The demo renders the `getting-started` project's `welcome` template, which every
+organization has in its `sandbox` environment. The key selects the environment, so
+no render sends a version.
 
 ## Routes
 
@@ -27,10 +32,9 @@ up from `example-app/`). Real shell exports always win.
 | `/render/pdf`                 | GET    | `client.render.pdf`                  |
 | `/render/stream`              | GET    | `client.render.pdf_stream`           |
 | `/render/file`                | POST   | `poli_page.fs.render_to_file`        |
-| `/render/preview`             | GET    | `client.render.preview`              |
 | `/documents`                  | POST   | `client.render.document`             |
 | `/documents/{id}`             | GET    | `client.documents.get` (302)         |
 | `/documents/{id}/thumbnails`  | GET    | `client.documents.thumbnails`        |
 | `/documents/{id}/preview`     | GET    | `client.documents.preview`           |
 | `/documents/{id}`             | DELETE | `client.documents.delete`            |
-| `/errors/bad-version`         | GET    | Triggers `BadRequestError`           |
+| `/errors/not-found`           | GET    | Renders template `does-not-exist`: `404 TEMPLATE_NOT_FOUND` with `code`, `status`, `message`, `requestId` |

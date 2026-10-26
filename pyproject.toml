@@ -46,6 +46,11 @@ dev = [
     "twine>=5",
 ]
 
+[tool.uv.sources]
+# Until the SDK release from poli-page/sdk-python#11 is published: sdk-python main
+# after poli-page/sdk-python#13 (environment keys, no template versions, no render.preview).
+poli-page = { git = "https://github.com/poli-page/sdk-python", rev = "f47d94d78f1d6c14232c7ad8c6522d753041d125" }
+
 [project.urls]
 Homepage = "https://poli.page"
 Documentation = "https://docs.poli.page/reference/sdk/python/"

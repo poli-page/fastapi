@@ -1,8 +1,8 @@
 """One end-to-end test against the live API.
 
-Skipped automatically when POLI_PAGE_API_KEY is unset or empty. Refuses to run with
-a pp_live_* key. Target a non-default environment by setting
-POLI_PAGE_TEST_BASE_URL.
+Skipped unless POLI_PAGE_API_KEY is a sandbox key (pp_sandbox_…): renders with any
+other key count toward the organization's PDF quota. Target a non-default API by
+setting POLI_PAGE_TEST_BASE_URL.
 """
 
 from __future__ import annotations
@@ -23,16 +23,9 @@ from poli_page_fastapi import (
 )
 
 pytestmark = pytest.mark.skipif(
-    not os.environ.get("POLI_PAGE_API_KEY"),
-    reason="POLI_PAGE_API_KEY env var not set",
+    not os.environ.get("POLI_PAGE_API_KEY", "").startswith("pp_sandbox_"),
+    reason="POLI_PAGE_API_KEY is not a sandbox key (pp_sandbox_…)",
 )
-
-
-def _check_test_key() -> str:
-    key = os.environ["POLI_PAGE_API_KEY"]
-    if key.startswith("pp_live_"):
-        pytest.fail("Integration test refuses to run with a pp_live_* key.")
-    return key
 
 
 def _make_dep() -> PoliPageDependency:
@@ -60,7 +53,6 @@ def render(client: Annotated[PoliPage, Depends(dep)]) -> PdfResponse:
         {
             "project": "getting-started",
             "template": "welcome",
-            "version": "1.0.0",
             "data": {"name": "fastapi integration test"},
         }
     )
@@ -69,7 +61,6 @@ def render(client: Annotated[PoliPage, Depends(dep)]) -> PdfResponse:
 
 @pytest.mark.integration
 def test_render_pdf_against_develop_api() -> None:
-    _check_test_key()
     with TestClient(app) as client:
         response = client.get("/render")
 

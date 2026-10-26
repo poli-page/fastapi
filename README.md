@@ -33,10 +33,24 @@ Set the API key in your environment before the app starts:
 
 ```bash
 # .env (or your shell)
-POLI_PAGE_API_KEY=pp_test_...
+POLI_PAGE_API_KEY=pp_sandbox_...
 ```
 
 Get a key at [app.poli.page/settings/api-keys](https://app.poli.page/settings/api-keys). The package does not call `load_dotenv()` for you — load the file yourself, or rely on pydantic-settings' `SettingsConfigDict(env_file=...)`.
+
+## API keys
+
+A key is `pp_{environment}_{32 lowercase hex}` and belongs to one environment of your organization. The key alone selects the environment, and so which published copy of a project renders: render inputs carry no version.
+
+| Environment                           | Key            | Watermark | Counted |
+| ------------------------------------- | -------------- | --------- | ------- |
+| `sandbox` (every org)                 | `pp_sandbox_…` | yes       | no      |
+| `live` (every org, deletable on Pro+) | `pp_live_…`    | no        | yes     |
+| created on Pro+ (e.g. `staging`)      | `pp_staging_…` | no        | yes     |
+
+"Counted" means the render counts toward the organization's monthly PDF quota.
+
+The API is the only authority on keys. This package checks only that `POLI_PAGE_API_KEY` is set and not empty. A value that does not match `pp_{environment}_{32 lowercase hex}` logs one warning through the `poli_page_fastapi.settings` logger, showing at most its `pp_{environment}_` part and never the secret, and the client starts anyway: the API answers `401 INVALID_API_KEY` (or `401 MISSING_API_KEY` for a value without `pp_`) if the key is not valid.
 
 ## Quick start
 
@@ -58,7 +72,6 @@ def invoice_pdf(invoice_id: str, client: Client) -> PdfResponse:
     pdf = client.render.pdf({
         "project": "invoices",
         "template": "monthly",
-        "version": "1.4.0",
         "data": {"invoice_id": invoice_id},
     })
     return PdfResponse(pdf, filename=f"invoice-{invoice_id}.pdf")
@@ -72,7 +85,7 @@ Run with `uvicorn main:app` and `GET /invoice/42.pdf` returns a PDF with the cor
 
 | Env var                  | Field         | Type    | Notes                                       |
 | ------------------------ | ------------- | ------- | ------------------------------------------- |
-| `POLI_PAGE_API_KEY`      | `api_key`     | `str`   | Must start with `pp_test_` or `pp_live_`.   |
+| `POLI_PAGE_API_KEY`      | `api_key`     | `str`   | Required: missing or empty, building the client raises `PoliPageError`. A value that is not `pp_{environment}_{32 lowercase hex}` logs one warning, then the API decides (see [API keys](#api-keys)). |
 | `POLI_PAGE_BASE_URL`     | `base_url`    | `str`   | Override for sandbox or regional endpoints. |
 | `POLI_PAGE_TIMEOUT`      | `timeout`     | `float` | Per-request timeout in seconds, `(0, 600]`. |
 | `POLI_PAGE_MAX_RETRIES`  | `max_retries` | `int`   | Retries per failed request, `[0, 10]`.      |
@@ -82,10 +95,12 @@ To use explicit settings on a per-router or per-endpoint basis, pass a `PoliPage
 
 ```python
 # main.py
+import os
+
 from poli_page_fastapi import PoliPageDependency, PoliPageSettings
 
 sandbox = PoliPageDependency(
-    settings=PoliPageSettings(api_key="pp_test_sandbox"),
+    settings=PoliPageSettings(api_key=os.environ["POLI_PAGE_SANDBOX_API_KEY"]),
 )
 ```
 
@@ -98,7 +113,7 @@ sandbox = PoliPageDependency(
 | `PoliPageSettings`          | Pydantic-settings reader for `POLI_PAGE_*` env vars.                   |
 | `PdfResponse`               | `Response` subclass for `client.render.pdf` bytes.                     |
 | `PdfStreamResponse`         | `StreamingResponse` subclass for `client.render.pdf_stream` iterators. |
-| `PreviewResponse`           | HTML preview response for `client.render.preview`.                     |
+| `PreviewResponse`           | `text/html` response for the stored HTML from `client.documents.preview`. |
 | `DocumentRedirectResponse`  | 302/308 redirect to a presigned document URL.                          |
 | `poli_page_exception_handler` | Opt-in global handler mapping SDK exceptions to JSON responses.      |
 | `poli_page_lifespan`        | ASGI lifespan that warms the client on startup and closes on shutdown. |
@@ -125,7 +140,7 @@ from poli_page import PoliPageError, RateLimitError
 @app.get("/invoice/{invoice_id}.pdf")
 def invoice_pdf(invoice_id: str, client: Client) -> PdfResponse:
     try:
-        pdf = client.render.pdf({"project": "...", "template": "...", "version": "...", "data": {}})
+        pdf = client.render.pdf({"project": "...", "template": "...", "data": {}})
     except RateLimitError as exc:
         return JSONResponse(
             status_code=429,
@@ -138,7 +153,7 @@ Or register `poli_page_exception_handler` once to map every `PoliPageError` to a
 
 ## Example app
 
-[`example-app/`](./example-app/) is a self-contained FastAPI app with an interactive dashboard at `GET /`. It exercises every SDK method — `render.pdf`, `render.pdf_stream`, `render.preview`, `render.document`, document retrieval, thumbnails, and deletion — and demonstrates `Depends()`, the response helpers, the exception handler, and lifespan wiring.
+[`example-app/`](./example-app/) is a self-contained FastAPI app with an interactive dashboard at `GET /`. It exercises every SDK method — `render.pdf`, `render.pdf_stream`, `render.document`, document retrieval, `documents.preview`, thumbnails, and deletion — and demonstrates `Depends()`, the response helpers, the exception handler (`GET /errors/not-found` answers `404 TEMPLATE_NOT_FOUND`), and lifespan wiring. Set `POLI_PAGE_API_KEY` to a sandbox key (`pp_sandbox_…`); `POLI_PAGE_BASE_URL` is optional.
 
 ```bash
 cd example-app
