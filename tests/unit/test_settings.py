@@ -2,24 +2,15 @@
 
 from __future__ import annotations
 
-import logging
-
 import pytest
 from pydantic import ValidationError
 
 from poli_page_fastapi.settings import PoliPageSettings
-from tests.unit.keys import HEX32, SANDBOX_KEY
+from tests.unit.keys import HEX32, LIVE_KEY, SANDBOX_KEY, key_warnings
 
-_LOGGER = "poli_page_fastapi.settings"
 _FORMAT = "pp_{environment}_{32 lowercase hex}"
 _ENV_20 = "abcdefghijklmnopqrst"
 _ENV_21 = "abcdefghijklmnopqrstu"
-
-
-def _key_warnings(caplog: pytest.LogCaptureFixture) -> list[str]:
-    return [
-        r.getMessage() for r in caplog.records if r.name == _LOGGER and r.levelno == logging.WARNING
-    ]
 
 
 def _expected_warning(shown: str | None) -> str:
@@ -46,7 +37,7 @@ def test_missing_api_key_yields_none(
     monkeypatch.delenv("POLI_PAGE_API_KEY", raising=False)
     settings = PoliPageSettings()
     assert settings.api_key is None
-    assert _key_warnings(caplog) == []
+    assert key_warnings(caplog) == []
 
 
 def test_empty_api_key_yields_none(
@@ -55,14 +46,14 @@ def test_empty_api_key_yields_none(
     monkeypatch.setenv("POLI_PAGE_API_KEY", "")
     settings = PoliPageSettings()
     assert settings.api_key is None
-    assert _key_warnings(caplog) == []
+    assert key_warnings(caplog) == []
 
 
 @pytest.mark.parametrize(
     "key",
     [
         SANDBOX_KEY,
-        f"pp_live_{HEX32}",
+        LIVE_KEY,
         f"pp_eu-prod_{HEX32}",
         f"pp_staging_{HEX32}",
         f"pp_a_{HEX32}",
@@ -77,7 +68,7 @@ def test_well_formed_key_loads_without_warning(
     monkeypatch.setenv("POLI_PAGE_API_KEY", key)
     settings = PoliPageSettings()
     assert settings.api_key == key
-    assert _key_warnings(caplog) == []
+    assert key_warnings(caplog) == []
 
 
 @pytest.mark.parametrize(
@@ -114,7 +105,7 @@ def test_malformed_key_loads_with_one_warning_without_the_secret(
     monkeypatch.setenv("POLI_PAGE_API_KEY", key)
     settings = PoliPageSettings()
     assert settings.api_key == key
-    warnings = _key_warnings(caplog)
+    warnings = key_warnings(caplog)
     assert warnings == [_expected_warning(shown)]
     assert key not in warnings[0]
 
@@ -122,7 +113,7 @@ def test_malformed_key_loads_with_one_warning_without_the_secret(
 def test_malformed_key_passed_as_kwarg_warns_once(caplog: pytest.LogCaptureFixture) -> None:
     settings = PoliPageSettings(api_key="pp_sandbox_x")
     assert settings.api_key == "pp_sandbox_x"
-    assert _key_warnings(caplog) == [_expected_warning("pp_sandbox_")]
+    assert key_warnings(caplog) == [_expected_warning("pp_sandbox_")]
 
 
 def test_base_url_read(monkeypatch: pytest.MonkeyPatch) -> None:

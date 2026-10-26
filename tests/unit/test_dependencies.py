@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,7 +10,7 @@ from pytest_mock import MockerFixture
 
 from poli_page_fastapi.dependencies import PoliPageDependency, get_poli_page_client
 from poli_page_fastapi.settings import PoliPageSettings
-from tests.unit.keys import LIVE_KEY, SANDBOX_KEY
+from tests.unit.keys import LIVE_KEY, SANDBOX_KEY, key_warnings
 
 
 @pytest.fixture(autouse=True)
@@ -91,14 +90,6 @@ def test_poli_page_dependency_independent_from_global(
     assert mock_cls.call_count == 2
 
 
-def _settings_warnings(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
-    return [
-        r
-        for r in caplog.records
-        if r.name == "poli_page_fastapi.settings" and r.levelno == logging.WARNING
-    ]
-
-
 @pytest.mark.parametrize("value", [None, ""])
 def test_get_poli_page_client_without_key_raises(
     monkeypatch: pytest.MonkeyPatch, value: str | None
@@ -121,9 +112,9 @@ def test_get_poli_page_client_starts_with_malformed_key(
         assert get_poli_page_client() is client
     finally:
         client.close()
-    warnings = _settings_warnings(caplog)
+    warnings = key_warnings(caplog)
     assert len(warnings) == 1
-    assert "not-a-real-secret" not in warnings[0].getMessage()
+    assert "not-a-real-secret" not in warnings[0]
 
 
 def test_poli_page_dependency_starts_with_malformed_key(caplog: pytest.LogCaptureFixture) -> None:
@@ -133,6 +124,6 @@ def test_poli_page_dependency_starts_with_malformed_key(caplog: pytest.LogCaptur
         assert isinstance(client, PoliPage)
     finally:
         dep.close()
-    warnings = _settings_warnings(caplog)
+    warnings = key_warnings(caplog)
     assert len(warnings) == 1
-    assert "sk_not_a_poli_page_key" not in warnings[0].getMessage()
+    assert "sk_not_a_poli_page_key" not in warnings[0]
