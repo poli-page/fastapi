@@ -14,20 +14,17 @@ logger = logging.getLogger(__name__)
 # pp_{environment}_{32 lowercase hex}, the SDK contract's full-key format. It only
 # drives a startup warning: the API is the authority on keys, so a mismatch never
 # stops the client.
-_ENVIRONMENT_PREFIX = r"pp_(?=[a-z][a-z0-9-]{0,19}_)[a-z][a-z0-9]*(?:-[a-z0-9]+)*_"
-_ENVIRONMENT_PREFIX_RE = re.compile(_ENVIRONMENT_PREFIX)
-_API_KEY_RE = re.compile(_ENVIRONMENT_PREFIX + r"[0-9a-f]{32}")
+_API_KEY_RE = re.compile(r"pp_(?=[a-z][a-z0-9-]{0,19}_)[a-z][a-z0-9]*(?:-[a-z0-9]+)*_[0-9a-f]{32}")
 
 
 def _warn_if_malformed(key: str) -> None:
     if not _API_KEY_RE.fullmatch(key):
-        # Only the pp_{environment}_ part may reach the log, never the secret.
-        shown = _ENVIRONMENT_PREFIX_RE.match(key)
+        # No part of the key reaches the log: even a pp_{environment}_ prefix can
+        # be a pasted secret fragment.
         logger.warning(
-            "POLI_PAGE_API_KEY%s does not match the key format "
-            "pp_{environment}_{32 lowercase hex}; starting anyway, "
-            "the Poli Page API decides whether the key is valid.",
-            f" ({shown.group()}…)" if shown else "",
+            "POLI_PAGE_API_KEY does not match the key format "
+            "pp_{environment}_{32 lowercase hex characters}; starting anyway, "
+            "the Poli Page API decides whether the key is valid."
         )
 
 
