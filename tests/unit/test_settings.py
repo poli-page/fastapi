@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 from pydantic import ValidationError
 
@@ -19,6 +21,23 @@ def _expected_warning(shown: str | None) -> str:
         f"{subject} does not match the key format {_FORMAT}; starting anyway, "
         "the Poli Page API decides whether the key is valid."
     )
+
+
+@pytest.fixture
+def debug_caplog(caplog: pytest.LogCaptureFixture) -> pytest.LogCaptureFixture:
+    # At the default WARNING level an INFO or DEBUG record carrying the key would be
+    # dropped before the leak checks below could see it.
+    caplog.set_level(logging.DEBUG)
+    return caplog
+
+
+def _assert_key_not_in_output(
+    key: str, caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    captured = capsys.readouterr()
+    for output in (caplog.text, captured.out, captured.err):
+        assert key.strip() not in output
+        assert HEX32[:8] not in output
 
 
 def test_minimal_valid_settings(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -98,16 +117,16 @@ def test_well_formed_key_loads_without_warning(
 )
 def test_malformed_key_loads_with_one_warning_without_the_secret(
     monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
+    debug_caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture[str],
     key: str,
     shown: str | None,
 ) -> None:
     monkeypatch.setenv("POLI_PAGE_API_KEY", key)
     settings = PoliPageSettings()
     assert settings.api_key == key
-    warnings = key_warnings(caplog)
-    assert warnings == [_expected_warning(shown)]
-    assert key not in warnings[0]
+    assert key_warnings(debug_caplog) == [_expected_warning(shown)]
+    _assert_key_not_in_output(key, debug_caplog, capsys)
 
 
 def test_malformed_key_passed_as_kwarg_warns_once(caplog: pytest.LogCaptureFixture) -> None:
@@ -117,21 +136,28 @@ def test_malformed_key_passed_as_kwarg_warns_once(caplog: pytest.LogCaptureFixtu
 
 
 @pytest.mark.parametrize("explicit", [None, ""])
+@pytest.mark.parametrize(
+    ("env_key", "shown"),
+    [
+        ("pp_sandbox_x", "pp_sandbox_"),
+        # The SDK sends the env value as is, so surrounding whitespace is not stripped.
+        (f" {SANDBOX_KEY} ", None),
+    ],
+)
 def test_explicit_empty_key_checks_the_env_key_the_sdk_falls_back_to(
     monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
+    debug_caplog: pytest.LogCaptureFixture,
     capsys: pytest.CaptureFixture[str],
     explicit: str | None,
+    env_key: str,
+    shown: str | None,
 ) -> None:
     # The client gets no api_key, so the SDK reads POLI_PAGE_API_KEY itself.
-    monkeypatch.setenv("POLI_PAGE_API_KEY", "pp_sandbox_x")
+    monkeypatch.setenv("POLI_PAGE_API_KEY", env_key)
     settings = PoliPageSettings(api_key=explicit)
     assert settings.api_key is None
-    warnings = key_warnings(caplog)
-    assert warnings == [_expected_warning("pp_sandbox_")]
-    captured = capsys.readouterr()
-    for output in (caplog.text, captured.out, captured.err):
-        assert "pp_sandbox_x" not in output
+    assert key_warnings(debug_caplog) == [_expected_warning(shown)]
+    _assert_key_not_in_output(env_key, debug_caplog, capsys)
 
 
 @pytest.mark.parametrize("env_key", [None, "", SANDBOX_KEY])
