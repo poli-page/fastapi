@@ -50,7 +50,7 @@ A key is `pp_{environment}_{32 lowercase hex}` and belongs to one environment of
 
 "Counted" means the render counts toward the organization's monthly PDF quota.
 
-The API is the only authority on keys. This package checks only that `POLI_PAGE_API_KEY` is set and not empty. A value that does not match `pp_{environment}_{32 lowercase hex}` logs one warning through the `poli_page_fastapi.settings` logger, showing at most its `pp_{environment}_` part and never the secret, and the client starts anyway: the API answers `401 INVALID_API_KEY` (or `401 MISSING_API_KEY` for a value without `pp_`) if the key is not valid.
+The API is the only authority on keys. This package checks only that `POLI_PAGE_API_KEY` is set and not empty. A value that does not match `pp_{environment}_{32 lowercase hex}` logs one warning through the `poli_page_fastapi.settings` logger, showing at most its `pp_{environment}_` part and never the secret, and the client starts anyway: the API answers `401 INVALID_API_KEY` (or `401 MISSING_API_KEY` for a value without `pp_`) if the key is not valid. A key passed explicitly (`PoliPageSettings(api_key=…)`) gets the same check. When that explicit value is `None` or empty, the client is built without a key and the SDK reads `POLI_PAGE_API_KEY` itself, so that value is checked instead.
 
 ## Quick start
 
@@ -100,7 +100,7 @@ import os
 from poli_page_fastapi import PoliPageDependency, PoliPageSettings
 
 sandbox = PoliPageDependency(
-    settings=PoliPageSettings(api_key=os.environ["POLI_PAGE_SANDBOX_API_KEY"]),
+    settings=PoliPageSettings(api_key=os.environ["POLI_PAGE_API_KEY"]),
 )
 ```
 

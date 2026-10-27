@@ -116,6 +116,45 @@ def test_malformed_key_passed_as_kwarg_warns_once(caplog: pytest.LogCaptureFixtu
     assert key_warnings(caplog) == [_expected_warning("pp_sandbox_")]
 
 
+@pytest.mark.parametrize("explicit", [None, ""])
+def test_explicit_empty_key_checks_the_env_key_the_sdk_falls_back_to(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture[str],
+    explicit: str | None,
+) -> None:
+    # The client gets no api_key, so the SDK reads POLI_PAGE_API_KEY itself.
+    monkeypatch.setenv("POLI_PAGE_API_KEY", "pp_sandbox_x")
+    settings = PoliPageSettings(api_key=explicit)
+    assert settings.api_key is None
+    warnings = key_warnings(caplog)
+    assert warnings == [_expected_warning("pp_sandbox_")]
+    captured = capsys.readouterr()
+    for output in (caplog.text, captured.out, captured.err):
+        assert "pp_sandbox_x" not in output
+
+
+@pytest.mark.parametrize("env_key", [None, "", SANDBOX_KEY])
+def test_explicit_empty_key_with_no_or_well_formed_env_key_does_not_warn(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture, env_key: str | None
+) -> None:
+    if env_key is None:
+        monkeypatch.delenv("POLI_PAGE_API_KEY", raising=False)
+    else:
+        monkeypatch.setenv("POLI_PAGE_API_KEY", env_key)
+    assert PoliPageSettings(api_key=None).api_key is None
+    assert key_warnings(caplog) == []
+
+
+def test_explicit_key_wins_over_a_malformed_env_key(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    # The SDK ignores the env var when it is given a key, so only that key is checked.
+    monkeypatch.setenv("POLI_PAGE_API_KEY", "pp_sandbox_x")
+    assert PoliPageSettings(api_key=SANDBOX_KEY).api_key == SANDBOX_KEY
+    assert key_warnings(caplog) == []
+
+
 def test_base_url_read(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("POLI_PAGE_API_KEY", SANDBOX_KEY)
     monkeypatch.setenv("POLI_PAGE_BASE_URL", "https://api.example.com")
