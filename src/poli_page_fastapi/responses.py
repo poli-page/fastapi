@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
+from contextlib import AbstractContextManager
 
 from starlette.background import BackgroundTask
 from starlette.responses import Response, StreamingResponse
@@ -47,14 +48,45 @@ class PdfResponse(Response):
         )
 
 
+class _OpenedStream:
+    """The chunks of an SDK stream entered at once; exhausting them, or an error, exits it."""
+
+    def __init__(self, stream: AbstractContextManager[Iterator[bytes]]) -> None:
+        self._stream = stream
+        self._chunks = iter(stream.__enter__())
+        self._open = True
+
+    def __iter__(self) -> Iterator[bytes]:
+        return self
+
+    def __next__(self) -> bytes:
+        try:
+            return next(self._chunks)
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self) -> None:
+        if self._open:
+            self._open = False
+            self._stream.__exit__(None, None, None)
+
+
 class PdfStreamResponse(StreamingResponse):
-    """A streamed PDF response for client.render.pdf_stream(...) iterators."""
+    """A streamed PDF response.
+
+    Pass the SDK's stream as is: `PdfStreamResponse(client.render.pdf_stream(input))`.
+    The render and the download start here, in the route, so a `PoliPageError` raises
+    before the response starts and reaches the error handler; the stream is closed once
+    it is read. An iterator of bytes (sync or async) is streamed as given: an error it
+    raises comes after the 200 has been sent.
+    """
 
     media_type = "application/pdf"
 
     def __init__(
         self,
-        content: Iterator[bytes] | AsyncIterator[bytes],
+        content: AbstractContextManager[Iterator[bytes]] | Iterator[bytes] | AsyncIterator[bytes],
         *,
         status_code: int = 200,
         filename: str = "document.pdf",
@@ -66,6 +98,8 @@ class PdfStreamResponse(StreamingResponse):
         merged["Content-Disposition"] = build_content_disposition(filename, inline=inline)
         for k, v in _PDF_DEFAULT_HEADERS.items():
             merged.setdefault(k, v)
+        if isinstance(content, AbstractContextManager):
+            content = _OpenedStream(content)
         super().__init__(
             content=content,
             status_code=status_code,

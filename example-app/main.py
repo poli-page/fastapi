@@ -15,10 +15,10 @@ from typing import Annotated, Any
 
 from dotenv import load_dotenv
 
-# One .env shared by the local checkouts, in the directory above this repository.
-_ROOT_ENV = Path(__file__).resolve().parent.parent.parent / ".env"
-if _ROOT_ENV.exists():
-    load_dotenv(_ROOT_ENV, override=False)
+# example-app/.env, if present; real shell exports win.
+_ENV_FILE = Path(__file__).resolve().parent / ".env"
+if _ENV_FILE.exists():
+    load_dotenv(_ENV_FILE, override=False)
 
 from fastapi import Depends, FastAPI, HTTPException  # noqa: E402
 from fastapi.responses import HTMLResponse, JSONResponse, Response  # noqa: E402
@@ -713,17 +713,16 @@ def render_pdf(client: Client) -> PdfResponse:
 # ----- 2. render.pdf_stream
 @app.get("/render/stream", response_class=PdfStreamResponse, tags=["render"])
 def render_stream(client: Client) -> PdfStreamResponse:
-    def gen() -> Any:
-        with client.render.pdf_stream(
-            {
-                "project": DEMO_PROJECT,
-                "template": DEMO_TEMPLATE,
-                "data": DEMO_DATA,
-            }
-        ) as chunks:
-            yield from chunks
-
-    return PdfStreamResponse(gen(), filename="welcome-stream.pdf", inline=True)
+    # The SDK stream goes to PdfStreamResponse as is: the render and the download start
+    # in the route, so an SDK error reaches the error handler instead of a started 200 PDF.
+    stream = client.render.pdf_stream(
+        {
+            "project": DEMO_PROJECT,
+            "template": DEMO_TEMPLATE,
+            "data": DEMO_DATA,
+        }
+    )
+    return PdfStreamResponse(stream, filename="welcome-stream.pdf", inline=True)
 
 
 # ----- 3. render_to_file

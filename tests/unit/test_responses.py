@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
+import pytest
+
 from poli_page_fastapi.responses import (
     DocumentRedirectResponse,
     PdfResponse,
@@ -113,3 +115,50 @@ def test_response_classes_yield_valid_openapi_schema() -> None:
     assert "/pdf" in schema["paths"]
     assert "/stream" in schema["paths"]
     assert "/preview" in schema["paths"]
+
+
+class _FakeStream:
+    """Stands in for the SDK's `client.render.pdf_stream(...)` context manager."""
+
+    def __init__(self, chunks: list[bytes], error: Exception | None = None) -> None:
+        self.chunks = chunks
+        self.error = error
+        self.entered = False
+        self.exited = 0
+
+    def __enter__(self) -> Iterator[bytes]:
+        self.entered = True
+        if self.error is not None:
+            raise self.error
+        return iter(self.chunks)
+
+    def __exit__(self, *exc: object) -> None:
+        self.exited += 1
+
+
+def test_pdf_stream_response_enters_an_sdk_stream_at_once_and_closes_it_once_read() -> None:
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from poli_page_fastapi.responses import PdfStreamResponse
+
+    stream = _FakeStream([b"%PDF", b"-1.4"])
+    response = PdfStreamResponse(stream, filename="s.pdf")
+    assert stream.entered
+    assert stream.exited == 0
+
+    app = FastAPI()
+    app.get("/s")(lambda: response)
+    assert TestClient(app).get("/s").content == b"%PDF-1.4"
+    assert stream.exited == 1
+
+
+def test_pdf_stream_response_raises_the_sdk_error_before_any_response() -> None:
+    from poli_page import PoliPageError
+
+    from poli_page_fastapi.responses import PdfStreamResponse
+
+    error = PoliPageError("Failed to download PDF: HTTP 403", code="DOWNLOAD_FAILED", status=403)
+    with pytest.raises(PoliPageError) as raised:
+        PdfStreamResponse(_FakeStream([], error), filename="s.pdf")
+    assert raised.value is error
