@@ -1,7 +1,6 @@
 """Root pytest conftest — loads the workspace-root .env once at collection time.
 
-Single source of truth (INTEGRATIONS_PLAN.md §"Cross-cutting DX patterns" §2):
-no per-app .env.local. Real shell exports always win.
+Single source of truth: no per-app .env.local. Real shell exports always win.
 """
 
 from __future__ import annotations
