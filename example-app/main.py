@@ -1,6 +1,6 @@
 """Interactive demo app for poli-page-fastapi.
 
-Mirrors sdk-python/demo/sync_demo.py step-for-step. The home page (GET /)
+Follows the Poli Page demo contract step for step. The home page (GET /)
 serves a single-page interactive dashboard exercising all 9 SDK demos.
 
 Run:
@@ -15,14 +15,14 @@ from typing import Annotated, Any
 
 from dotenv import load_dotenv
 
-# Single root .env — see INTEGRATIONS_PLAN.md §"Cross-cutting DX patterns" §2.
+# One .env shared by the local checkouts, in the directory above this repository.
 _ROOT_ENV = Path(__file__).resolve().parent.parent.parent / ".env"
 if _ROOT_ENV.exists():
     load_dotenv(_ROOT_ENV, override=False)
 
 from fastapi import Depends, FastAPI, HTTPException  # noqa: E402
 from fastapi.responses import HTMLResponse, JSONResponse, Response  # noqa: E402
-from poli_page import PoliPage, PoliPageError, fs  # noqa: E402
+from poli_page import PoliPage, fs  # noqa: E402
 
 from poli_page_fastapi import (  # noqa: E402
     DocumentRedirectResponse,
@@ -30,8 +30,7 @@ from poli_page_fastapi import (  # noqa: E402
     PdfStreamResponse,
     PreviewResponse,
     get_poli_page_client,
-    poli_page_exception_handler,
-    poli_page_lifespan,
+    setup_poli_page,
 )
 
 logger = logging.getLogger("example-app")
@@ -495,9 +494,9 @@ DASHBOARD_HTML = """<!doctype html>
       <h2>Error handling <span class="label">04 · typed exceptions</span></h2>
       <p class="desc">
         Renders the template <code>does-not-exist</code> to trigger a 404
-        <code>TEMPLATE_NOT_FOUND</code>. The opt-in
-        <code>poli_page_exception_handler</code> returns the error's code, status, message,
-        and request id as JSON.
+        <code>TEMPLATE_NOT_FOUND</code>. The route does not catch it: the
+        integration's error handler, on by default, returns the error's code, message,
+        status and request id as JSON.
       </p>
     </div>
     <div class="actions">
@@ -687,9 +686,10 @@ DASHBOARD_HTML = """<!doctype html>
 app = FastAPI(
     title="poli-page-fastapi demo",
     description="Interactive demo of every SDK feature",
-    lifespan=poli_page_lifespan,
 )
-app.add_exception_handler(PoliPageError, poli_page_exception_handler)
+# Builds the client at startup, closes it at shutdown, and answers an uncaught
+# PoliPageError with its to_payload() JSON (the integration's error handler).
+setup_poli_page(app)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
