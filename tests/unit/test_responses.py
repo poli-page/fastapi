@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import Any
 
+import anyio
 import pytest
+from starlette.types import Message
 
 from poli_page_fastapi.responses import (
     DocumentRedirectResponse,
@@ -162,3 +165,72 @@ def test_pdf_stream_response_raises_the_sdk_error_before_any_response() -> None:
     with pytest.raises(PoliPageError) as raised:
         PdfStreamResponse(_FakeStream([], error), filename="s.pdf")
     assert raised.value is error
+
+
+class _EndlessStream(_FakeStream):
+    """An SDK stream that never ends, to disconnect in the middle of it."""
+
+    def __enter__(self) -> Iterator[bytes]:
+        self.entered = True
+        return iter(lambda: b"%PDF chunk", b"")
+
+
+def _http_scope(spec_version: str) -> dict[str, Any]:
+    return {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": spec_version},
+        "http_version": "1.1",
+        "method": "GET",
+        "path": "/",
+        "headers": [],
+    }
+
+
+@pytest.mark.parametrize("spec_version", ["2.3", "2.4"])
+async def test_pdf_stream_response_closes_the_sdk_stream_when_the_send_fails(
+    spec_version: str,
+) -> None:
+    # A client that drops the connection: the server's send raises OSError (ASGI 2.4+
+    # turns it into ClientDisconnect).
+    from poli_page_fastapi.responses import PdfStreamResponse
+
+    stream = _EndlessStream([])
+    response = PdfStreamResponse(stream, filename="s.pdf")
+    sent: list[Message] = []
+
+    async def receive() -> Message:
+        await anyio.sleep_forever()
+        raise AssertionError("unreachable")
+
+    async def send(message: Message) -> None:
+        sent.append(message)
+        if len(sent) == 3:
+            raise OSError("connection reset by peer")
+
+    with pytest.raises(Exception):
+        await response(_http_scope(spec_version), receive, send)
+    assert stream.exited == 1
+
+
+async def test_pdf_stream_response_closes_the_sdk_stream_on_a_disconnect_message() -> None:
+    # ASGI < 2.4: Starlette watches receive() and cancels the streaming on http.disconnect.
+    from poli_page_fastapi.responses import PdfStreamResponse
+
+    stream = _EndlessStream([])
+    response = PdfStreamResponse(stream, filename="s.pdf")
+    chunks = anyio.Event()
+    sent: list[Message] = []
+
+    async def receive() -> Message:
+        await chunks.wait()
+        return {"type": "http.disconnect"}
+
+    async def send(message: Message) -> None:
+        sent.append(message)
+        if len(sent) == 3:
+            chunks.set()
+
+    with anyio.fail_after(5):
+        await response(_http_scope("2.3"), receive, send)
+    assert len(sent) >= 3
+    assert stream.exited == 1

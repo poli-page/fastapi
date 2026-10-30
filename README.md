@@ -152,7 +152,7 @@ setup_poli_page(app, error_handler=False)
 
 `FastAPI(lifespan=poli_page_lifespan)` on its own registers no handler: use `setup_poli_page(app)` instead (not both, or the client lifespan runs twice), or register the handler yourself with `app.add_exception_handler(PoliPageError, poli_page_exception_handler)`. Call `setup_poli_page` before the app starts; afterwards it raises `RuntimeError`.
 
-For a streamed PDF, pass the SDK stream to `PdfStreamResponse` as is, `PdfStreamResponse(client.render.pdf_stream(input))`, instead of opening it inside a generator: an error raised once the body is streaming comes after the `200` is sent, and no handler can answer it.
+For a streamed PDF, pass the SDK stream to `PdfStreamResponse` as is, `PdfStreamResponse(client.render.pdf_stream(input))`, instead of opening it inside a generator: an error raised once the body is streaming comes after the `200` is sent, and no handler can answer it. The response closes the stream when it ends, including when the client disconnects. Opening the stream sends the render and the download's first request synchronously, so build the response in a `def` route (FastAPI runs it in its threadpool), or through `run_in_threadpool` in an `async def` route.
 
 ### Error types
 

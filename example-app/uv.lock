@@ -211,6 +211,7 @@ wheels = [
 name = "poli-page-fastapi"
 source = { editable = "../" }
 dependencies = [
+    { name = "anyio" },
     { name = "fastapi" },
     { name = "poli-page" },
     { name = "pydantic" },
@@ -219,6 +220,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", specifier = ">=3.7" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1" },
     { name = "fastapi", specifier = ">=0.100,<1.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.25" },

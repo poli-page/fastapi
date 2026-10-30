@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `setup_poli_page(app, *, error_handler=True)`: wraps the app's lifespan in `poli_page_lifespan` (the app's own lifespan and startup/shutdown handlers still run) and registers the error handler, on by default. A `PoliPageError` a route lets through answers `application/json` with the SDK's `to_payload()` body, `{code, message, status, requestId}`, and its `status` (`503` for `network_error`, `504` for `timeout`, `500` when the error has none). `error_handler=False` turns it off.
-- `PdfStreamResponse` accepts the SDK stream as is (`PdfStreamResponse(client.render.pdf_stream(input))`): it enters the stream at once, so a render or download error raises in the route and reaches the error handler, and closes it once read. Iterators are still accepted.
+- `PdfStreamResponse` accepts the SDK stream as is (`PdfStreamResponse(client.render.pdf_stream(input))`): it enters the stream at once, so a render or download error raises in the route and reaches the error handler, and closes it when the response ends: read to the end, failed, or the client disconnected. Iterators are still accepted.
 - Migration: replace `FastAPI(lifespan=poli_page_lifespan)` + `app.add_exception_handler(PoliPageError, poli_page_exception_handler)` with `app = FastAPI()` + `setup_poli_page(app)`. `setup_poli_page` raises `RuntimeError` if the app has already started.
 - Contract tests: `example-app/tests/test_contract.py` runs the API contract's integration cases (`impl.*`) against the example app. CI runs them against the pinned `poli-page/api-contract` v1.3.0, and Dependabot proposes each new contract version.
 
