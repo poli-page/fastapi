@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `PdfStreamResponse` closes the SDK stream before it runs its `background` task. After a
+  client disconnect, the stream's connection used to stay open until the task finished.
+
 ## [0.11.0] - 2026-10-30
 
 First release. The version matches the `poli-page` SDK 0.11.0 it requires.
