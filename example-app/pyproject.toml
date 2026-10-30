@@ -5,12 +5,11 @@ description = "Interactive demo of poli-page-fastapi"
 requires-python = ">=3.11"
 dependencies = [
     "poli-page-fastapi",
+    "poli-page>=0.11.0,<2",
     "uvicorn[standard]>=0.27",
     "python-dotenv>=1.0",
 ]
 
 [tool.uv.sources]
-# example-app installs poli-page-fastapi from the local source. poli-page is pinned to
-# sdk-python main (as in ../pyproject.toml) until the release from poli-page/sdk-python#11.
+# example-app installs poli-page-fastapi from the local source.
 poli-page-fastapi = { path = "..", editable = true }
-poli-page = { git = "https://github.com/poli-page/sdk-python", rev = "f47d94d78f1d6c14232c7ad8c6522d753041d125" }

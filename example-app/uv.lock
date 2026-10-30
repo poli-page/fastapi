@@ -170,10 +170,14 @@ wheels = [
 
 [[package]]
 name = "poli-page"
-version = "0.9.0"
-source = { git = "https://github.com/poli-page/sdk-python?rev=f47d94d78f1d6c14232c7ad8c6522d753041d125#f47d94d78f1d6c14232c7ad8c6522d753041d125" }
+version = "0.11.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/75/3f78e5875adb1a2371886b3304ea91092951fdfdb53f79383d9fa14186c7/poli_page-0.11.0.tar.gz", hash = "sha256:b3a23fbe393b6a90263f18f705e85ba992ec52006f018bf431cd93dbc4b10279", size = 96372, upload-time = "2026-10-30T09:06:31.893Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/aa/ad63445ea2a6404698551bc3632b5fdf2ef3b9fa89c7308aad95f97c0e95/poli_page-0.11.0-py3-none-any.whl", hash = "sha256:f4d474146d42c52e93b4617068811a0243f63a5e5505127e916e643861fdd11c", size = 34957, upload-time = "2026-10-30T09:06:30.599Z" },
 ]
 
 [[package]]
@@ -192,7 +196,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.100,<1.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.25" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "poli-page", git = "https://github.com/poli-page/sdk-python?rev=f47d94d78f1d6c14232c7ad8c6522d753041d125" },
+    { name = "poli-page", specifier = ">=0.11.0,<2" },
     { name = "pydantic", specifier = ">=2.0,<3" },
     { name = "pydantic-settings", specifier = ">=2.0,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
@@ -210,6 +214,7 @@ name = "poli-page-fastapi-example"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "poli-page" },
     { name = "poli-page-fastapi" },
     { name = "python-dotenv" },
     { name = "uvicorn", extra = ["standard"] },
@@ -217,6 +222,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "poli-page", specifier = ">=0.11.0,<2" },
     { name = "poli-page-fastapi", editable = "../" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.27" },

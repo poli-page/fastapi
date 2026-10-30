@@ -98,8 +98,10 @@ def test_get_poli_page_client_without_key_raises(
         monkeypatch.delenv("POLI_PAGE_API_KEY", raising=False)
     else:
         monkeypatch.setenv("POLI_PAGE_API_KEY", value)
-    with pytest.raises(PoliPageError, match="api_key is required"):
+    # SDK spec §8.3: the exact invalid_options message, the same in every SDK.
+    with pytest.raises(PoliPageError, match=r"^apiKey is required$") as raised:
         get_poli_page_client()
+    assert raised.value.code == "invalid_options"
 
 
 def test_get_poli_page_client_starts_with_malformed_key(
