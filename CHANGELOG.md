@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The live API CI job passes the optional `POLI_PAGE_BASE_URL` secret to the integration test (unset: the SDK default), next to the `pp_sandbox_` key in `POLI_PAGE_API_KEY`.
+
 ### Fixed
 - `PdfStreamResponse` closes the SDK stream before it runs its `background` task. After a
   client disconnect, the stream's connection used to stay open until the task finished.
