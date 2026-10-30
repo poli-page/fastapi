@@ -1,0 +1,224 @@
+name: Release
+
+# Tag-driven release. Pushing a `vX.Y.Z` tag runs the full test suite against
+# the pinned API contract, builds the wheel + sdist, publishes them to PyPI via
+# Trusted Publishing (OIDC; no long-lived token) and cuts the matching GitHub
+# Release. A manual `workflow_dispatch` run publishes to TestPyPI only, for
+# rehearsing the pipeline without burning a real version on pypi.org (PyPI
+# uploads are immutable).
+#
+# One-time setup and per-release steps: see RELEASING.md.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Manual runs publish to TestPyPI only (production goes through a vX.Y.Z tag push)."
+        required: true
+        default: "testpypi"
+        type: choice
+        options:
+          - testpypi
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.rel.outputs.version }}
+      target: ${{ steps.rel.outputs.target }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: false
+
+      - name: Resolve version and target
+        id: rel
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          PKG_VERSION="$(python -c 'import re; print(re.search(r"__version__\s*=\s*\"([^\"]+)\"", open("src/poli_page_fastapi/_version.py").read()).group(1))')"
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            # Tag push -> production release to PyPI. The tag version must
+            # match _version.py exactly (PEP 440 normalized form, no hyphen).
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "$TAG_VERSION" != "$PKG_VERSION" ]]; then
+              echo "::error::Refusing to publish: tag ${GITHUB_REF_NAME} does not match _version.py ($PKG_VERSION)."
+              exit 1
+            fi
+            echo "target=pypi" >> "$GITHUB_OUTPUT"
+          else
+            echo "target=testpypi" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing poli-page-fastapi@$PKG_VERSION via $EVENT_NAME."
+
+      - name: Check the CHANGELOG section
+        env:
+          VERSION: ${{ steps.rel.outputs.version }}
+        run: |
+          set -euo pipefail
+          if ! grep -qF "## [$VERSION]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [$VERSION]' section."
+            exit 1
+          fi
+
+      # Every `uv run` uses --no-sync: the venv is the locked set from `uv sync`.
+      - name: Install
+        run: uv sync --all-extras --locked
+      - name: Lint
+        run: uv run --no-sync ruff check .
+      - name: Format
+        run: uv run --no-sync ruff format --check .
+      - name: Type check
+        run: uv run --no-sync mypy src tests example-app/tests
+      - name: API contract
+        id: contract
+        uses: poli-page/api-contract@0eba96c1ecf9a28b7e259f444f3ca5b7c059d5fd # v1.3.0
+      - name: Unit tests
+        env:
+          POLI_CONTRACT: ${{ steps.contract.outputs.path }}
+        run: uv run --no-sync pytest tests/unit -v
+      - name: Example app install
+        working-directory: example-app
+        run: |
+          uv sync --locked
+          uv run python -c "import main; print('example app loads:', main.app.title)"
+      - name: Contract tests (example app)
+        working-directory: example-app
+        env:
+          CI: "true"
+          POLI_CONTRACT: ${{ steps.contract.outputs.path }}
+        run: |
+          test -s "$POLI_CONTRACT" || { echo "::error::API contract file missing: '$POLI_CONTRACT'"; exit 1; }
+          uv run pytest -v -rs
+
+      - name: Build wheel + sdist
+        run: uv run --no-sync python -m build
+      - name: Inspect with twine check
+        run: uv run --no-sync python -m twine check --strict dist/*
+      # The package ships the library only: no tests, example app or repo tooling.
+      - name: Check package contents
+        env:
+          VERSION: ${{ steps.rel.outputs.version }}
+        run: |
+          set -euo pipefail
+          python - <<'EOF'
+          import os, sys, tarfile, zipfile
+          v = os.environ["VERSION"]
+          wheel = f"dist/poli_page_fastapi-{v}-py3-none-any.whl"
+          sdist = f"dist/poli_page_fastapi-{v}.tar.gz"
+          bad = [n for n in zipfile.ZipFile(wheel).namelist()
+                 if not n.startswith(("poli_page_fastapi/", f"poli_page_fastapi-{v}.dist-info/"))]
+          root = f"poli_page_fastapi-{v}"
+          files = ("README.md", "CHANGELOG.md", "LICENSE", "pyproject.toml", "PKG-INFO", ".gitignore")
+          dirs = ("", "src", "src/poli_page_fastapi")
+          for n in tarfile.open(sdist).getnames():
+              rel = n.removeprefix(root).strip("/") if n.split("/")[0] == root else None
+              if rel is None or not (
+                  rel in files or rel in dirs or rel.startswith("src/poli_page_fastapi/")
+              ):
+                  bad.append(n)
+          if bad:
+              sys.exit("Unexpected files in the package:\n" + "\n".join(bad))
+          print(f"{wheel} and {sdist}: library files only.")
+          EOF
+
+      - name: Extract CHANGELOG section for this version
+        env:
+          VERSION: ${{ steps.rel.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-notes
+          awk -v ver="$VERSION" '
+            index($0, "## [" ver "]") == 1 { capture = 1; next }
+            capture && /^## \[/              { exit }
+            capture                          { print }
+          ' CHANGELOG.md > release-notes/notes.md
+          test -s release-notes/notes.md
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: release-notes/
+          if-no-files-found: error
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: pypi-publish
+    permissions:
+      id-token: write # required for PyPI Trusted Publishing (OIDC)
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI via Trusted Publishing
+        if: needs.verify.outputs.target == 'pypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: true
+
+      - name: Publish to TestPyPI via Trusted Publishing
+        if: needs.verify.outputs.target == 'testpypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          attestations: true
+
+  github-release:
+    needs: [verify, publish]
+    if: needs.verify.outputs.target == 'pypi'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to create the GitHub Release
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: release-notes/
+
+      # The tag already exists (it triggered this run); attach the built
+      # artifacts and the CHANGELOG section to it.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release create "v$VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "v$VERSION" \
+            --notes-file release-notes/notes.md \
+            dist/*

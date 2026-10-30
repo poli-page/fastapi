@@ -425,7 +425,7 @@ DASHBOARD_HTML = """<!doctype html>
     <p class="tagline">Your integration, your dashboard. Every SDK feature, one click away.</p>
     <div class="status-row">
       <span class="dot"></span>
-      <span>poli-page/fastapi v0.1.0</span>
+      <span>poli-page/fastapi v0.11.0</span>
     </div>
   </header>
 
@@ -527,7 +527,7 @@ DASHBOARD_HTML = """<!doctype html>
   </section>
 
   <footer>
-    <span>poli-page/fastapi · v0.1.0</span>
+    <span>poli-page/fastapi · v0.11.0</span>
     <span class="links"><a href="https://docs.poli.page" target="_blank" rel="noopener">docs.poli.page</a></span>
   </footer>
 
