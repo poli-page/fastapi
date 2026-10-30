@@ -85,7 +85,9 @@ select = ["E", "F", "W", "I", "B", "UP", "RUF", "SIM"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src", "tests"]
+files = ["src", "tests", "example-app/tests"]
+# The contract test imports the example app's `main` module.
+mypy_path = "example-app"
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]

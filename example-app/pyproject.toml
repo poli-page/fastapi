@@ -13,3 +13,14 @@ dependencies = [
 [tool.uv.sources]
 # example-app installs poli-page-fastapi from the local source.
 poli-page-fastapi = { path = "..", editable = true }
+
+[dependency-groups]
+# The contract test (tests/test_contract.py) drives the app with FastAPI's TestClient.
+dev = [
+    "pytest>=8",
+    "httpx>=0.25",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
