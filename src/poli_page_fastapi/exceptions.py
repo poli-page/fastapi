@@ -1,6 +1,6 @@
-"""Opt-in exception handler bridging PoliPageError to FastAPI JSON responses.
+"""Exception handler answering a `PoliPageError` as JSON.
 
-Register via:
+`setup_poli_page(app)` registers it by default. To register it yourself:
 
     from poli_page import PoliPageError
     from poli_page_fastapi import poli_page_exception_handler
@@ -16,34 +16,20 @@ from poli_page import PoliPageError
 
 
 def poli_page_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Map any PoliPageError to a canonical JSON response.
+    """Answer a `PoliPageError` with its `to_payload()` body.
 
-    Body shape: `{code, message, status, requestId}` (camelCase on the wire).
-    Status: from the SDK's `to_payload()` — the API status for `APIStatusError`,
-    503 for connection failures, 504 for timeouts. Non-`PoliPageError`
-    exceptions surface as a 500 with `code="UNKNOWN"`.
+    Body: exactly `exc.to_payload()`, `{code, message, status, requestId}` (camelCase
+    on the wire, `null` when unknown). Status: the payload's `status` (the API status,
+    503 for `network_error`, 504 for `timeout`), or 500 when it is `null`.
+
+    Any other exception is re-raised, so the application's own handling applies.
     """
     if not isinstance(exc, PoliPageError):
-        return JSONResponse(
-            status_code=500,
-            content={
-                "code": "UNKNOWN",
-                "message": str(exc),
-                "status": 500,
-                "requestId": None,
-            },
-            headers={"Cache-Control": "no-store, private"},
-        )
-
+        raise exc
     payload = exc.to_payload()
-    status_code = payload["status"] or 500
+    status = payload["status"]
     return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": payload["code"],
-            "message": payload["message"],
-            "status": status_code,
-            "requestId": payload["requestId"],
-        },
+        status_code=status if isinstance(status, int) else 500,
+        content=payload,
         headers={"Cache-Control": "no-store, private"},
     )

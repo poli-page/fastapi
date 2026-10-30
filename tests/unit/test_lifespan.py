@@ -44,7 +44,7 @@ def test_lifespan_no_warmup_without_context_manager(
 ) -> None:
     """Bare TestClient(app).get(...) without `with` skips lifespan.
 
-    Documented in CLAUDE.md §10.2. This test PROVES the gotcha: the
+    This test proves the gotcha: the
     factory is NOT called when the lifespan doesn't fire.
     """
     monkeypatch.setenv("POLI_PAGE_API_KEY", SANDBOX_KEY)

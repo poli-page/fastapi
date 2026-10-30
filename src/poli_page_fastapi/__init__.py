@@ -13,6 +13,7 @@ from poli_page_fastapi.responses import (
     PreviewResponse,
 )
 from poli_page_fastapi.settings import PoliPageSettings
+from poli_page_fastapi.setup import setup_poli_page
 
 __all__ = [
     "DocumentRedirectResponse",
@@ -25,4 +26,5 @@ __all__ = [
     "get_poli_page_client",
     "poli_page_exception_handler",
     "poli_page_lifespan",
+    "setup_poli_page",
 ]
