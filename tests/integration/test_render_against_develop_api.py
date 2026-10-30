@@ -1,8 +1,7 @@
 """One end-to-end test against the live API.
 
 Skipped unless POLI_PAGE_API_KEY is a sandbox key (pp_sandbox_…): renders with any
-other key count toward the organization's PDF quota. Target a non-default API by
-setting POLI_PAGE_TEST_BASE_URL.
+other key count toward the organization's PDF quota.
 """
 
 from __future__ import annotations
@@ -38,7 +37,6 @@ def _make_dep() -> PoliPageDependency:
     """
     settings = PoliPageSettings.model_construct(
         api_key=os.environ.get("POLI_PAGE_API_KEY", ""),
-        base_url=os.environ.get("POLI_PAGE_TEST_BASE_URL"),
     )
     return PoliPageDependency(settings=settings)
 

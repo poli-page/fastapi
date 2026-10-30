@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Example app: no `version` in any render; `GET /errors/not-found` (template `does-not-exist`, `404 TEMPLATE_NOT_FOUND`) replaces `GET /errors/bad-version`. The app is set up with `setup_poli_page(app)`, so that route answers through the default error handler. `GET /render/stream` passes the SDK stream to `PdfStreamResponse`, so a render error answers the handler's JSON instead of a `200` PDF with an empty body. The app loads `example-app/.env` instead of a `.env` above the repository.
 - The integration test runs only with a sandbox key (`pp_sandbox_…`).
 
+### CI
+- The live API job runs on `main` (and on demand) against the production API with the sandbox key from the `POLI_PAGE_API_KEY` secret, and skips with a notice when the key is absent or not a `pp_sandbox_` key.
+
 ### Removed
 - Example app: `GET /render/preview` and its dashboard button (`render.preview` no longer exists in the SDK).
 
