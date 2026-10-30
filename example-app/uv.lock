@@ -234,13 +234,13 @@ requires-dist = [
     { name = "python-dotenv", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "respx", marker = "extra == 'dev'", specifier = ">=0.21" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
-    { name = "twine", marker = "extra == 'dev'", specifier = ">=5" },
+    { name = "twine", marker = "extra == 'dev'", specifier = ">=7" },
 ]
 provides-extras = ["dev"]
 
 [[package]]
 name = "poli-page-fastapi-example"
-version = "0.1.0"
+version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "poli-page" },

@@ -44,7 +44,7 @@ dev = [
     "respx>=0.21",
     "python-dotenv>=1.0",
     "build>=1",
-    "twine>=5",
+    "twine>=7",
 ]
 
 [project.urls]
@@ -53,6 +53,7 @@ Documentation = "https://docs.poli.page/reference/sdk/python/"
 Source = "https://github.com/poli-page/fastapi"
 Issues = "https://github.com/poli-page/fastapi/issues"
 Changelog = "https://github.com/poli-page/fastapi/blob/main/CHANGELOG.md"
+Release-Notes = "https://github.com/poli-page/fastapi/releases"
 
 [tool.hatch.version]
 source = "regex"
@@ -63,9 +64,9 @@ pattern = '__version__ = "(?P<version>[^"]+)"'
 packages = ["src/poli_page_fastapi"]
 
 [tool.hatch.build.targets.sdist]
+# The sdist ships the library only: no tests, example app or repo tooling.
 include = [
     "/src",
-    "/tests",
     "/README.md",
     "/CHANGELOG.md",
     "/LICENSE",

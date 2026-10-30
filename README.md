@@ -209,7 +209,7 @@ The following deep dives are forthcoming under `docs/`:
 
 | Package version | FastAPI                | Python              |
 | --------------- | ---------------------- | ------------------- |
-| 0.1.x           | `^0.100`, `^0.110`     | 3.11, 3.12, 3.13    |
+| 0.11.x          | `^0.100`, `^0.110`     | 3.11, 3.12, 3.13    |
 
 Tested against the FastAPI versions listed above; other 0.x releases in that range are expected to work. The SDK requirement is `poli-page>=0.11.0,<2`.
 
