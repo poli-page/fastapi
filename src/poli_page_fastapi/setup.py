@@ -23,11 +23,17 @@ def setup_poli_page(app: FastAPI, *, error_handler: bool = True) -> None:
       `error_handler=False`: a route that lets a `PoliPageError` through answers
       its `to_payload()` JSON with its status (500 when it has none).
 
+    Raises `RuntimeError` once the app has started: Starlette copies the exception
+    handlers when it builds its middleware stack, on the first ASGI call, so a later
+    handler would never run.
+
     Usage:
 
         app = FastAPI()
         setup_poli_page(app)
     """
+    if app.middleware_stack is not None:
+        raise RuntimeError("Call setup_poli_page(app) before the app starts.")
     if error_handler:
         app.add_exception_handler(PoliPageError, poli_page_exception_handler)
 

@@ -182,3 +182,15 @@ def test_setup_keeps_startup_and_shutdown_handlers(
 
     with TestClient(app):
         assert calls == ["startup"]
+
+
+def test_setup_after_the_app_started_raises(
+    monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
+) -> None:
+    monkeypatch.setenv("POLI_PAGE_API_KEY", SANDBOX_KEY)
+    mocker.patch("poli_page_fastapi.dependencies.PoliPage", return_value=MagicMock())
+    app = _app()
+
+    with TestClient(app), pytest.raises(RuntimeError, match="before the app starts"):
+        setup_poli_page(app)
+    assert PoliPageError not in app.exception_handlers

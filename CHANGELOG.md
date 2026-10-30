@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `setup_poli_page(app, *, error_handler=True)`: wraps the app's lifespan in `poli_page_lifespan` (the app's own lifespan and startup/shutdown handlers still run) and registers the error handler, on by default. A `PoliPageError` a route lets through answers `application/json` with the SDK's `to_payload()` body, `{code, message, status, requestId}`, and its `status` (`503` for `network_error`, `504` for `timeout`, `500` when the error has none). `error_handler=False` turns it off.
+- `PdfStreamResponse` accepts the SDK stream as is (`PdfStreamResponse(client.render.pdf_stream(input))`): it enters the stream at once, so a render or download error raises in the route and reaches the error handler, and closes it once read. Iterators are still accepted.
+- Migration: replace `FastAPI(lifespan=poli_page_lifespan)` + `app.add_exception_handler(PoliPageError, poli_page_exception_handler)` with `app = FastAPI()` + `setup_poli_page(app)`. `setup_poli_page` raises `RuntimeError` if the app has already started.
 - Contract tests: `example-app/tests/test_contract.py` runs the API contract's integration cases (`impl.*`) against the example app. CI runs them against the pinned `poli-page/api-contract` v1.3.0, and Dependabot proposes each new contract version.
 
 ### Changed (breaking)
@@ -16,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Requires the `poli-page` SDK 0.11.0 (`poli-page>=0.11.0,<2`, from PyPI), the first release with environment API keys and no template versions: render inputs carry no `version` and `render.preview` is gone. A missing key now raises the SDK's `PoliPageError` with the message `apiKey is required` (code `invalid_options`).
 - `poli_page_exception_handler` answers with the SDK's `to_payload()` body as is: an error with no status answers `500` with `"status": null` in the body (it used to copy `500` into the body). Any exception that is not a `PoliPageError` is re-raised instead of being answered as a hand-built `{"code": "UNKNOWN", …}`.
 - `PreviewResponse` is documented for `client.documents.preview` (the stored HTML of a rendered document).
-- Example app: no `version` in any render; `GET /errors/not-found` (template `does-not-exist`, `404 TEMPLATE_NOT_FOUND`) replaces `GET /errors/bad-version`. The app is set up with `setup_poli_page(app)`, so that route answers through the default error handler.
+- Example app: no `version` in any render; `GET /errors/not-found` (template `does-not-exist`, `404 TEMPLATE_NOT_FOUND`) replaces `GET /errors/bad-version`. The app is set up with `setup_poli_page(app)`, so that route answers through the default error handler. `GET /render/stream` passes the SDK stream to `PdfStreamResponse`, so a render error answers the handler's JSON instead of a `200` PDF with an empty body. The app loads `example-app/.env` instead of a `.env` above the repository.
 - The integration test runs only with a sandbox key (`pp_sandbox_…`).
 
 ### Removed

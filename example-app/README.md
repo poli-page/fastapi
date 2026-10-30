@@ -16,8 +16,8 @@ Then open <http://localhost:8000>.
 
 ## Env
 
-Set `POLI_PAGE_API_KEY` to a sandbox key (`pp_sandbox_...`) in your shell or in a
-`.env` in the directory above this repository. `POLI_PAGE_BASE_URL` is optional. Real
+Set `POLI_PAGE_API_KEY` to a sandbox key (`pp_sandbox_...`) in your shell or in
+`example-app/.env`. `POLI_PAGE_BASE_URL` is optional. Real
 shell exports always win.
 
 The demo renders the `getting-started` project's `welcome` template, which every

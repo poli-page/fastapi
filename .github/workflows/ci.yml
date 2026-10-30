@@ -17,6 +17,9 @@ jobs:
           # httpx.Client; httpx 0.28 removed that argument.
           - fastapi: "0.100"
             test-pin: "httpx<0.28"
+          # The FastAPI and Starlette in uv.lock, what a new install gets.
+          - python: "3.13"
+            fastapi: "locked"
     env:
       UV_PYTHON: ${{ matrix.python }}
     steps:
@@ -31,7 +34,9 @@ jobs:
           TEST_PIN: ${{ matrix.test-pin }}
         run: |
           uv sync --all-extras --locked
-          uv pip install "fastapi~=${{ matrix.fastapi }}.0" ${TEST_PIN:+"$TEST_PIN"}
+          if [ "${{ matrix.fastapi }}" != "locked" ]; then
+            uv pip install "fastapi~=${{ matrix.fastapi }}.0" ${TEST_PIN:+"$TEST_PIN"}
+          fi
       # Every `uv run` in the package uses --no-sync: a plain `uv run` re-syncs the
       # venv to uv.lock and silently replaces the matrix FastAPI with the locked one.
       - name: FastAPI version under test
@@ -57,8 +62,9 @@ jobs:
           uv sync --locked
           uv run python -c "import main; print('example app loads:', main.app.title)"
       - name: Contract tests (example app)
-        # tests/test_contract.py runs the contract's impl cases against the example app.
-        # With CI set it fails, never skips, when POLI_CONTRACT is missing.
+        # tests/test_contract.py runs the contract's impl cases against the example app
+        # (with CI set it fails, never skips, when POLI_CONTRACT is missing);
+        # tests/test_render_stream.py checks the streamed route's error answers.
         working-directory: example-app
         env:
           CI: "true"

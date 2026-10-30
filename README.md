@@ -116,7 +116,7 @@ sandbox = PoliPageDependency(
 | `PoliPageDependency`        | Class-based dependency for per-router or per-instance settings.        |
 | `PoliPageSettings`          | Pydantic-settings reader for `POLI_PAGE_*` env vars.                   |
 | `PdfResponse`               | `Response` subclass for `client.render.pdf` bytes.                     |
-| `PdfStreamResponse`         | `StreamingResponse` subclass for `client.render.pdf_stream` iterators. |
+| `PdfStreamResponse`         | `StreamingResponse` subclass for `client.render.pdf_stream(...)`: pass the SDK stream as is, so SDK errors reach the error handler. |
 | `PreviewResponse`           | `text/html` response for the stored HTML from `client.documents.preview`. |
 | `DocumentRedirectResponse`  | 302/308 redirect to a presigned document URL.                          |
 | `setup_poli_page`           | Sets up an app: the client lifespan and the error handler (on by default). |
@@ -150,7 +150,9 @@ Other exceptions are not touched. To handle SDK errors yourself, turn the handle
 setup_poli_page(app, error_handler=False)
 ```
 
-Without `setup_poli_page`, register it yourself with `app.add_exception_handler(PoliPageError, poli_page_exception_handler)`.
+`FastAPI(lifespan=poli_page_lifespan)` on its own registers no handler: use `setup_poli_page(app)` instead (not both, or the client lifespan runs twice), or register the handler yourself with `app.add_exception_handler(PoliPageError, poli_page_exception_handler)`. Call `setup_poli_page` before the app starts; afterwards it raises `RuntimeError`.
+
+For a streamed PDF, pass the SDK stream to `PdfStreamResponse` as is, `PdfStreamResponse(client.render.pdf_stream(input))`, instead of opening it inside a generator: an error raised once the body is streaming comes after the `200` is sent, and no handler can answer it.
 
 ### Error types
 
