@@ -17,57 +17,61 @@ jobs:
           # httpx.Client; httpx 0.28 removed that argument.
           - fastapi: "0.100"
             test-pin: "httpx<0.28"
+          # The FastAPI and Starlette in uv.lock, what a new install gets.
+          - python: "3.13"
+            fastapi: "locked"
+    env:
+      UV_PYTHON: ${{ matrix.python }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
       - uses: astral-sh/setup-uv@v3
+      # Strict: a failed install fails the job. --locked fails on a stale uv.lock.
       - name: Install
         env:
           TEST_PIN: ${{ matrix.test-pin }}
         run: |
-          if [ -f pyproject.toml ]; then
-            uv sync --all-extras
+          uv sync --all-extras --locked
+          if [ "${{ matrix.fastapi }}" != "locked" ]; then
             uv pip install "fastapi~=${{ matrix.fastapi }}.0" ${TEST_PIN:+"$TEST_PIN"}
-          else
-            echo "Skipping install: no pyproject.toml yet"
           fi
-      # Every `uv run` below uses --no-sync: a plain `uv run` re-syncs the venv to
-      # uv.lock and silently replaces the matrix FastAPI with the locked one.
+      # Every `uv run` in the package uses --no-sync: a plain `uv run` re-syncs the
+      # venv to uv.lock and silently replaces the matrix FastAPI with the locked one.
       - name: FastAPI version under test
-        run: |
-          if [ -f pyproject.toml ]; then
-            uv run --no-sync python -c "import fastapi; print('FastAPI', fastapi.__version__)"
-          fi
+        run: uv run --no-sync python -c "import fastapi; print('FastAPI', fastapi.__version__)"
       - name: Lint
-        run: |
-          if [ -f pyproject.toml ]; then
-            uv run --no-sync ruff check .
-          else
-            echo "Skipping lint: no pyproject.toml yet"
-          fi
+        run: uv run --no-sync ruff check .
       - name: Format
-        run: |
-          if [ -f pyproject.toml ]; then
-            uv run --no-sync ruff format --check .
-          else
-            echo "Skipping format: no pyproject.toml yet"
-          fi
+        run: uv run --no-sync ruff format --check .
       - name: Type check
-        run: |
-          if [ -f pyproject.toml ] && [ -d src/poli_page_fastapi ]; then
-            uv run --no-sync mypy src tests
-          else
-            echo "Skipping mypy: no src/poli_page_fastapi yet"
-          fi
+        run: uv run --no-sync mypy src tests example-app/tests
+      - name: API contract
+        id: contract
+        uses: poli-page/api-contract@0eba96c1ecf9a28b7e259f444f3ca5b7c059d5fd # v1.3.0
       - name: Unit tests
+        env:
+          POLI_CONTRACT: ${{ steps.contract.outputs.path }}
+        run: uv run --no-sync pytest tests/unit -v
+      # The example app is its own uv project (its own uv.lock) with the package
+      # installed from this checkout.
+      - name: Example app install
+        working-directory: example-app
         run: |
-          if [ -d tests/unit ] && [ -n "$(find tests/unit -name 'test_*.py' 2>/dev/null)" ]; then
-            uv run --no-sync pytest tests/unit -v
-          else
-            echo "Skipping tests: no tests/unit/test_*.py yet"
-          fi
+          uv sync --locked
+          uv run python -c "import main; print('example app loads:', main.app.title)"
+      - name: Contract tests (example app)
+        # tests/test_contract.py runs the contract's impl cases against the example app
+        # (with CI set it fails, never skips, when POLI_CONTRACT is missing);
+        # tests/test_render_stream.py checks the streamed route's error answers.
+        working-directory: example-app
+        env:
+          CI: "true"
+          POLI_CONTRACT: ${{ steps.contract.outputs.path }}
+        run: |
+          test -s "$POLI_CONTRACT" || { echo "::error::API contract file missing: '$POLI_CONTRACT'"; exit 1; }
+          uv run pytest -v -rs
 
   integration:
     runs-on: ubuntu-latest

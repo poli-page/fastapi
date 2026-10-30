@@ -1,8 +1,7 @@
 """Unit-test autouse fixtures.
 
 Snapshots SIGINT handler and asyncio pending tasks per test, restores in
-teardown. Pattern carried from symfony-bundle's RestoresGlobalHandlers and
-django/tests/conftest.py. See CLAUDE.md §10.3.
+teardown, the same pattern as the other Poli Page integrations' test setup.
 
 Also scrubs POLI_PAGE_* env vars before each unit test so the workspace
 .env (loaded by tests/conftest.py for the integration suite) does not

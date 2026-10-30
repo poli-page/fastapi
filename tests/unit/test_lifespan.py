@@ -11,6 +11,7 @@ from pytest_mock import MockerFixture
 
 from poli_page_fastapi.dependencies import get_poli_page_client
 from poli_page_fastapi.lifespan import poli_page_lifespan
+from tests.unit.keys import SANDBOX_KEY
 
 
 @pytest.fixture(autouse=True)
@@ -21,7 +22,7 @@ def _clear_factory_cache() -> None:
 def test_lifespan_warms_and_closes_client(
     monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
 ) -> None:
-    monkeypatch.setenv("POLI_PAGE_API_KEY", "pp_test_x")
+    monkeypatch.setenv("POLI_PAGE_API_KEY", SANDBOX_KEY)
     mock_client = MagicMock()
     mock_cls = mocker.patch("poli_page_fastapi.dependencies.PoliPage", return_value=mock_client)
 
@@ -43,10 +44,10 @@ def test_lifespan_no_warmup_without_context_manager(
 ) -> None:
     """Bare TestClient(app).get(...) without `with` skips lifespan.
 
-    Documented in CLAUDE.md §10.2. This test PROVES the gotcha: the
+    This test proves the gotcha: the
     factory is NOT called when the lifespan doesn't fire.
     """
-    monkeypatch.setenv("POLI_PAGE_API_KEY", "pp_test_x")
+    monkeypatch.setenv("POLI_PAGE_API_KEY", SANDBOX_KEY)
     mock_cls = mocker.patch("poli_page_fastapi.dependencies.PoliPage")
 
     app = FastAPI(lifespan=poli_page_lifespan)

@@ -93,29 +93,48 @@ def test_api_timeout_error_maps_to_504() -> None:
     resp = poli_page_exception_handler(_fake_request(), exc)
     assert resp.status_code == 504
     body = _body(resp)
-    assert body["code"] == "timeout"
-    assert body["status"] == 504
-
-
-def test_base_poli_page_error_maps_to_500() -> None:
-    exc = PoliPageError("bad config", code="invalid_options")
-    resp = poli_page_exception_handler(_fake_request(), exc)
-    assert resp.status_code == 500
-    body = _body(resp)
     assert body == {
-        "code": "invalid_options",
-        "message": "bad config",
-        "status": 500,
+        "code": "timeout",
+        "message": "deadline exceeded",
+        "status": 504,
         "requestId": None,
     }
 
 
-def test_non_poli_page_error_returns_500() -> None:
-    exc = ValueError("not a poli page error")
+def test_error_without_status_answers_500_with_null_status() -> None:
+    exc = PoliPageError("apiKey is required", code="invalid_options")
     resp = poli_page_exception_handler(_fake_request(), exc)
     assert resp.status_code == 500
     body = _body(resp)
-    assert body["code"] == "UNKNOWN"
+    # The body is to_payload() as is: its status stays null.
+    assert body == {
+        "code": "invalid_options",
+        "message": "apiKey is required",
+        "status": None,
+        "requestId": None,
+    }
+
+
+@pytest.mark.parametrize(
+    "exc",
+    [
+        NotFoundError("missing", code="TEMPLATE_NOT_FOUND", status=404, request_id="req_1"),
+        APIConnectionError("Network request failed", code="network_error"),
+        APITimeoutError("Request timed out after 60000ms", code="timeout"),
+        PoliPageError("apiKey is required", code="invalid_options"),
+    ],
+    ids=["api", "network_error", "timeout", "no-status"],
+)
+def test_body_is_exactly_to_payload(exc: PoliPageError) -> None:
+    resp = poli_page_exception_handler(_fake_request(), exc)
+    assert _body(resp) == exc.to_payload()
+    assert resp.headers["content-type"] == "application/json"
+
+
+def test_non_poli_page_error_is_reraised() -> None:
+    exc = ValueError("not a poli page error")
+    with pytest.raises(ValueError, match="not a poli page error"):
+        poli_page_exception_handler(_fake_request(), exc)
 
 
 def test_response_has_no_store_cache_header() -> None:

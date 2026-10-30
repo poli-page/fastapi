@@ -1,7 +1,7 @@
 """Interactive demo app for poli-page-fastapi.
 
-Mirrors sdk-python/demo/sync_demo.py step-for-step. The home page (GET /)
-serves a single-page interactive dashboard exercising all 10 SDK demos.
+Follows the Poli Page demo contract step for step. The home page (GET /)
+serves a single-page interactive dashboard exercising all 9 SDK demos.
 
 Run:
     uv run uvicorn main:app --reload --port 8000
@@ -15,14 +15,14 @@ from typing import Annotated, Any
 
 from dotenv import load_dotenv
 
-# Single root .env — see INTEGRATIONS_PLAN.md §"Cross-cutting DX patterns" §2.
-_ROOT_ENV = Path(__file__).resolve().parent.parent.parent / ".env"
-if _ROOT_ENV.exists():
-    load_dotenv(_ROOT_ENV, override=False)
+# example-app/.env, if present; real shell exports win.
+_ENV_FILE = Path(__file__).resolve().parent / ".env"
+if _ENV_FILE.exists():
+    load_dotenv(_ENV_FILE, override=False)
 
 from fastapi import Depends, FastAPI, HTTPException  # noqa: E402
 from fastapi.responses import HTMLResponse, JSONResponse, Response  # noqa: E402
-from poli_page import PoliPage, PoliPageError, fs  # noqa: E402
+from poli_page import PoliPage, fs  # noqa: E402
 
 from poli_page_fastapi import (  # noqa: E402
     DocumentRedirectResponse,
@@ -30,8 +30,7 @@ from poli_page_fastapi import (  # noqa: E402
     PdfStreamResponse,
     PreviewResponse,
     get_poli_page_client,
-    poli_page_exception_handler,
-    poli_page_lifespan,
+    setup_poli_page,
 )
 
 logger = logging.getLogger("example-app")
@@ -39,7 +38,6 @@ logging.basicConfig(level=logging.INFO)
 
 DEMO_PROJECT = "getting-started"
 DEMO_TEMPLATE = "welcome"
-DEMO_VERSION = "1.0.0"
 DEMO_DATA: dict[str, Any] = {"name": "FastAPI demo"}
 
 Client = Annotated[PoliPage, Depends(get_poli_page_client)]
@@ -435,15 +433,13 @@ DASHBOARD_HTML = """<!doctype html>
     <div class="head">
       <h2>Render <span class="label">01 · instant</span></h2>
       <p class="desc">
-        Three SDK entry points for rendering the <code>getting-started/welcome</code> template:
-        binary PDF (<code>render.pdf</code>), streamed PDF (<code>render.pdf_stream</code>),
-        and HTML preview (<code>render.preview</code>).
+        Two SDK entry points for rendering the <code>getting-started/welcome</code> template:
+        binary PDF (<code>render.pdf</code>) and streamed PDF (<code>render.pdf_stream</code>).
       </p>
     </div>
     <div class="actions">
       <button class="run" data-action="pdf"     data-target="r1">Render PDF</button>
       <button class="run" data-action="stream"  data-target="r1">Via stream</button>
-      <button class="run" data-action="preview" data-target="r1">HTML preview</button>
     </div>
     <div class="result" id="r1">
       <div class="pane-label"><span>output</span><span class="meta">idle</span></div>
@@ -497,14 +493,14 @@ DASHBOARD_HTML = """<!doctype html>
     <div class="head">
       <h2>Error handling <span class="label">04 · typed exceptions</span></h2>
       <p class="desc">
-        Sends a deliberately malformed version string to trigger
-        <code>INVALID_VERSION_FORMAT</code>. The opt-in
-        <code>poli_page_exception_handler</code> propagates the API code, message,
-        and request-id as JSON.
+        Renders the template <code>does-not-exist</code> to trigger a 404
+        <code>TEMPLATE_NOT_FOUND</code>. The route does not catch it: the
+        integration's error handler, on by default, returns the error's code, message,
+        status and request id as JSON.
       </p>
     </div>
     <div class="actions">
-      <button class="run" data-action="bad-version" data-target="r4">Trigger 400</button>
+      <button class="run" data-action="not-found" data-target="r4">Trigger 404</button>
     </div>
     <div class="result" id="r4">
       <div class="pane-label"><span>output</span><span class="meta">idle</span></div>
@@ -609,12 +605,6 @@ DASHBOARD_HTML = """<!doctype html>
       const blob = await r.blob();
       renderIframe(target, URL.createObjectURL(blob), 'pdf (stream)', `${blob.size.toLocaleString()} bytes`);
     },
-    preview: async target => {
-      const r = await fetch('/render/preview');
-      const html = await r.text();
-      if (!r.ok) return renderError(target, `HTTP ${r.status}`);
-      renderInlineHtml(target, html, 'html preview', `${html.length.toLocaleString()} chars`);
-    },
     'doc-create': async target => {
       const r = await fetch('/documents', { method: 'POST' });
       const body = await r.text();
@@ -654,8 +644,8 @@ DASHBOARD_HTML = """<!doctype html>
       const body = await r.text();
       renderJson(target, r.status, body, 'wrote to disk');
     },
-    'bad-version': async target => {
-      const r = await fetch('/errors/bad-version');
+    'not-found': async target => {
+      const r = await fetch('/errors/not-found');
       const body = await r.text();
       renderJson(target, r.status, body, 'error payload');
     },
@@ -696,9 +686,10 @@ DASHBOARD_HTML = """<!doctype html>
 app = FastAPI(
     title="poli-page-fastapi demo",
     description="Interactive demo of every SDK feature",
-    lifespan=poli_page_lifespan,
 )
-app.add_exception_handler(PoliPageError, poli_page_exception_handler)
+# Builds the client at startup, closes it at shutdown, and answers an uncaught
+# PoliPageError with its to_payload() JSON (the integration's error handler).
+setup_poli_page(app)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -713,7 +704,6 @@ def render_pdf(client: Client) -> PdfResponse:
         {
             "project": DEMO_PROJECT,
             "template": DEMO_TEMPLATE,
-            "version": DEMO_VERSION,
             "data": DEMO_DATA,
         }
     )
@@ -723,18 +713,16 @@ def render_pdf(client: Client) -> PdfResponse:
 # ----- 2. render.pdf_stream
 @app.get("/render/stream", response_class=PdfStreamResponse, tags=["render"])
 def render_stream(client: Client) -> PdfStreamResponse:
-    def gen() -> Any:
-        with client.render.pdf_stream(
-            {
-                "project": DEMO_PROJECT,
-                "template": DEMO_TEMPLATE,
-                "version": DEMO_VERSION,
-                "data": DEMO_DATA,
-            }
-        ) as chunks:
-            yield from chunks
-
-    return PdfStreamResponse(gen(), filename="welcome-stream.pdf", inline=True)
+    # The SDK stream goes to PdfStreamResponse as is: the render and the download start
+    # in the route, so an SDK error reaches the error handler instead of a started 200 PDF.
+    stream = client.render.pdf_stream(
+        {
+            "project": DEMO_PROJECT,
+            "template": DEMO_TEMPLATE,
+            "data": DEMO_DATA,
+        }
+    )
+    return PdfStreamResponse(stream, filename="welcome-stream.pdf", inline=True)
 
 
 # ----- 3. render_to_file
@@ -747,7 +735,6 @@ def render_to_file(client: Client) -> dict[str, str]:
         {
             "project": DEMO_PROJECT,
             "template": DEMO_TEMPLATE,
-            "version": DEMO_VERSION,
             "data": DEMO_DATA,
         },
         path=str(output),
@@ -755,28 +742,13 @@ def render_to_file(client: Client) -> dict[str, str]:
     return {"path": str(output), "size_bytes": str(output.stat().st_size)}
 
 
-# ----- 4. render.preview
-@app.get("/render/preview", response_class=PreviewResponse, tags=["render"])
-def render_preview(client: Client) -> PreviewResponse:
-    preview = client.render.preview(
-        {
-            "project": DEMO_PROJECT,
-            "template": DEMO_TEMPLATE,
-            "version": DEMO_VERSION,
-            "data": DEMO_DATA,
-        }
-    )
-    return PreviewResponse(preview.html)
-
-
-# ----- 5. render.document
+# ----- 4. render.document
 @app.post("/documents", tags=["documents"])
 def document_create(client: Client) -> dict[str, Any]:
     descriptor = client.render.document(
         {
             "project": DEMO_PROJECT,
             "template": DEMO_TEMPLATE,
-            "version": DEMO_VERSION,
             "data": DEMO_DATA,
         }
     )
@@ -789,14 +761,14 @@ def document_create(client: Client) -> dict[str, Any]:
     }
 
 
-# ----- 6. documents.get
+# ----- 5. documents.get
 @app.get("/documents/{document_id}", tags=["documents"])
 def document_get(document_id: str, client: Client) -> DocumentRedirectResponse:
     descriptor = client.documents.get(document_id)
     return DocumentRedirectResponse(descriptor.presigned_pdf_url)
 
 
-# ----- 7. documents.thumbnails
+# ----- 6. documents.thumbnails
 @app.get("/documents/{document_id}/thumbnails", tags=["documents"])
 def document_thumbnails(document_id: str, client: Client) -> dict[str, list[dict[str, Any]]]:
     thumbnails = client.documents.thumbnails(document_id, {"width": 320, "format": "png"})
@@ -814,29 +786,28 @@ def document_thumbnails(document_id: str, client: Client) -> dict[str, list[dict
     }
 
 
-# ----- 8. documents.preview
+# ----- 7. documents.preview
 @app.get("/documents/{document_id}/preview", response_class=PreviewResponse, tags=["documents"])
 def document_preview(document_id: str, client: Client) -> PreviewResponse:
     preview = client.documents.preview(document_id)
     return PreviewResponse(preview.html)
 
 
-# ----- 9. documents.delete
+# ----- 8. documents.delete
 @app.delete("/documents/{document_id}", status_code=204, tags=["documents"])
 def document_delete(document_id: str, client: Client) -> Response:
     client.documents.delete(document_id)
     return Response(status_code=204)
 
 
-# ----- 10. Error handling — deliberately trigger an INVALID_VERSION_FORMAT
-@app.get("/errors/bad-version", tags=["errors"])
-def error_bad_version(client: Client) -> JSONResponse:
+# ----- 9. Error handling — a template that does not exist answers 404 TEMPLATE_NOT_FOUND
+@app.get("/errors/not-found", tags=["errors"])
+def error_not_found(client: Client) -> JSONResponse:
     client.render.pdf(
         {
             "project": DEMO_PROJECT,
-            "template": DEMO_TEMPLATE,
-            "version": "not.a.version",
-            "data": DEMO_DATA,
+            "template": "does-not-exist",
+            "data": {},
         }
     )
     raise HTTPException(status_code=500, detail="Expected SDK to raise; did not.")

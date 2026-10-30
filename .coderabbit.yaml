@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
-# CodeRabbit config for poli-page repos. PRs here are mostly opened and fixed by automated agents
-# (the poli-page auto loop and issue pipeline), which read CodeRabbit's findings and its commit status.
+# CodeRabbit config for poli-page repos. PRs here are mostly opened and fixed by automated tooling,
+# which reads CodeRabbit's findings and its commit status.
 language: en-US
 early_access: false
 reviews:
@@ -72,8 +72,8 @@ reviews:
         Cache-Control.
     - path: "src/poli_page_fastapi/{settings,dependencies,lifespan}.py"
       instructions: >-
-        The API key comes only from POLI_PAGE_* env vars and must start with pp_test_ or pp_live_;
-        never log or echo it. The client factory is memoised and must be closed cleanly in lifespan.
+        The API key comes only from POLI_PAGE_* env vars. Any non-empty value is accepted; one
+        not shaped pp_{environment}_{32 lowercase hex} logs one warning. Never log or echo any part of it. The client factory is memoised and must be closed cleanly in lifespan.
         Settings bounds (timeout, max_retries, retry_delay) must match the README table.
     - path: "tests/**/*.py"
       instructions: >-

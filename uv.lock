@@ -372,7 +372,7 @@ name = "importlib-metadata"
 version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp", marker = "python_full_version < '3.15'" },
+    { name = "zipp" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a9/01/15bb152d77b21318514a96f43af312635eb2500c96b55398d020c93d86ea/importlib_metadata-9.0.0.tar.gz", hash = "sha256:a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc", size = 56405, upload-time = "2026-03-20T06:42:56.999Z" }
 wheels = [
@@ -677,20 +677,21 @@ wheels = [
 
 [[package]]
 name = "poli-page"
-version = "0.9.0"
+version = "0.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/92/29/80923b0dc8ed40e92b23b09982d4d477e452f5f6d1e6e64bff245d70a495/poli_page-0.9.0.tar.gz", hash = "sha256:efee904106345de579032f48b63e8650e6b2a650c7ebe220657b895e7c03e6df", size = 72769, upload-time = "2026-06-19T10:02:41.466Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/75/3f78e5875adb1a2371886b3304ea91092951fdfdb53f79383d9fa14186c7/poli_page-0.11.0.tar.gz", hash = "sha256:b3a23fbe393b6a90263f18f705e85ba992ec52006f018bf431cd93dbc4b10279", size = 96372, upload-time = "2026-10-30T09:06:31.893Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9d/fd/9ca9f3ba31d7b1582e7557ebf6dda3007a33f824f4d7468cf8c23ba2dc5a/poli_page-0.9.0-py3-none-any.whl", hash = "sha256:755f1ab56a86e6ca3ee992a83d91ade6612d858d29c6b7b2a916575d7807d913", size = 32141, upload-time = "2026-06-19T10:02:40.149Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/aa/ad63445ea2a6404698551bc3632b5fdf2ef3b9fa89c7308aad95f97c0e95/poli_page-0.11.0-py3-none-any.whl", hash = "sha256:f4d474146d42c52e93b4617068811a0243f63a5e5505127e916e643861fdd11c", size = 34957, upload-time = "2026-10-30T09:06:30.599Z" },
 ]
 
 [[package]]
 name = "poli-page-fastapi"
 source = { editable = "." }
 dependencies = [
+    { name = "anyio" },
     { name = "fastapi" },
     { name = "poli-page" },
     { name = "pydantic" },
@@ -713,11 +714,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", specifier = ">=3.7" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1" },
     { name = "fastapi", specifier = ">=0.100,<1.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.25" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "poli-page", specifier = ">=0.9,<2" },
+    { name = "poli-page", specifier = ">=0.11.0,<2" },
     { name = "pydantic", specifier = ">=2.0,<3" },
     { name = "pydantic-settings", specifier = ">=2.0,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
