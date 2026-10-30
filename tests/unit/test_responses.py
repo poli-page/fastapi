@@ -234,3 +234,95 @@ async def test_pdf_stream_response_closes_the_sdk_stream_on_a_disconnect_message
         await response(_http_scope("2.3"), receive, send)
     assert len(sent) >= 3
     assert stream.exited == 1
+
+
+async def test_pdf_stream_response_closes_the_sdk_stream_before_the_background_task() -> None:
+    # A whole PDF sent, then a slow background task: the stream's connection must not
+    # stay open while the task runs.
+    from starlette.background import BackgroundTask
+
+    from poli_page_fastapi.responses import PdfStreamResponse
+
+    stream = _FakeStream([b"%PDF", b"-1.4"])
+    exited_when_the_task_ran: list[int] = []
+    response = PdfStreamResponse(
+        stream,
+        filename="s.pdf",
+        background=BackgroundTask(lambda: exited_when_the_task_ran.append(stream.exited)),
+    )
+    sent: list[Message] = []
+
+    async def receive() -> Message:
+        await anyio.sleep_forever()
+        raise AssertionError("unreachable")
+
+    async def send(message: Message) -> None:
+        sent.append(message)
+
+    with anyio.fail_after(5):
+        await response(_http_scope("2.4"), receive, send)
+    assert b"".join(m.get("body", b"") for m in sent) == b"%PDF-1.4"
+    assert exited_when_the_task_ran == [1]
+    assert stream.exited == 1
+
+
+async def test_pdf_stream_response_closes_the_sdk_stream_before_a_disconnect_task() -> None:
+    # ASGI < 2.4: after an http.disconnect Starlette still runs the background task.
+    from starlette.background import BackgroundTask
+
+    from poli_page_fastapi.responses import PdfStreamResponse
+
+    stream = _EndlessStream([])
+    exited_when_the_task_ran: list[int] = []
+    response = PdfStreamResponse(
+        stream,
+        filename="s.pdf",
+        background=BackgroundTask(lambda: exited_when_the_task_ran.append(stream.exited)),
+    )
+    chunks = anyio.Event()
+    sent: list[Message] = []
+
+    async def receive() -> Message:
+        await chunks.wait()
+        return {"type": "http.disconnect"}
+
+    async def send(message: Message) -> None:
+        sent.append(message)
+        if len(sent) == 3:
+            chunks.set()
+
+    with anyio.fail_after(5):
+        await response(_http_scope("2.3"), receive, send)
+    assert exited_when_the_task_ran == [1]
+    assert response.background is not None
+
+
+@pytest.mark.parametrize("spec_version", ["2.3", "2.4"])
+async def test_pdf_stream_response_runs_no_background_task_when_the_send_fails(
+    spec_version: str,
+) -> None:
+    # Starlette's rule, kept: a response that raises runs no background task.
+    from starlette.background import BackgroundTask
+
+    from poli_page_fastapi.responses import PdfStreamResponse
+
+    stream = _EndlessStream([])
+    ran: list[bool] = []
+    response = PdfStreamResponse(
+        stream, filename="s.pdf", background=BackgroundTask(lambda: ran.append(True))
+    )
+    sent: list[Message] = []
+
+    async def receive() -> Message:
+        await anyio.sleep_forever()
+        raise AssertionError("unreachable")
+
+    async def send(message: Message) -> None:
+        sent.append(message)
+        if len(sent) == 3:
+            raise OSError("connection reset by peer")
+
+    with pytest.raises(Exception):
+        await response(_http_scope(spec_version), receive, send)
+    assert stream.exited == 1
+    assert ran == []
