@@ -2,6 +2,9 @@
 
 Skipped unless POLI_PAGE_API_KEY is a sandbox key (pp_sandbox_…): renders with any
 other key count toward the organization's PDF quota.
+
+The API is the SDK default base URL, or POLI_PAGE_BASE_URL when it is set (the SDK
+reads that variable itself; CI passes the optional secret of the same name).
 """
 
 from __future__ import annotations
