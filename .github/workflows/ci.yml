@@ -24,11 +24,11 @@ jobs:
     env:
       UV_PYTHON: ${{ matrix.python }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v7
       # Strict: a failed install fails the job. --locked fails on a stale uv.lock.
       - name: Install
         env:
@@ -90,12 +90,12 @@ jobs:
               echo "present=false" >> "$GITHUB_OUTPUT"
               ;;
           esac
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.key.outputs.present == 'true'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         if: steps.key.outputs.present == 'true'
         with: { python-version: "3.12" }
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v7
         if: steps.key.outputs.present == 'true'
       - name: Install
         if: steps.key.outputs.present == 'true'
