@@ -7,10 +7,13 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # Why: codecov-action uses OIDC for tokenless uploads on public repos.
 
 jobs:
   test:
+    # Why: codecov-action uses OIDC for tokenless uploads on public repos.
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -62,7 +65,7 @@ jobs:
       - name: Upload coverage to Codecov
         # Why: only upload from one matrix slot to avoid duplicate reports.
         # use_oidc is required: Codecov rejects tokenless uploads on the default
-        # (protected) branch, and we've granted id-token: write at the workflow level.
+        # (protected) branch, and the job grants id-token: write.
         if: matrix.python == '3.12' && matrix.fastapi == '0.110' && hashFiles('coverage.xml') != ''
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
