@@ -1,0 +1,54 @@
+---
+title: Quick start
+description: Return your first Poli Page PDF from a FastAPI route with Depends(get_poli_page_client) and PdfResponse.
+---
+
+This page takes you from a configured app to a PDF answered by a route. You inject the client with `Depends(get_poli_page_client)`, render a template, and wrap the bytes in `PdfResponse`, which sets the PDF headers for you.
+
+## Set up the app
+
+Call `setup_poli_page(app)`, as [Install](../install/) shows.
+
+## Render from a route
+
+`get_poli_page_client` returns the SDK's `PoliPage` client, built once per process from the `POLI_PAGE_*` environment variables. `client.render.pdf(...)` renders the template and returns the PDF as `bytes`.
+
+Hand the bytes to `PdfResponse(pdf, filename=...)`. It sends `Content-Type: application/pdf`, a `Content-Disposition` built from the filename, `Cache-Control: no-store, private` and `X-Content-Type-Options: nosniff`.
+
+The SDK client is synchronous. Declare the route with `def`, and FastAPI runs it in its threadpool. From an `async def` route, call the client through `run_in_threadpool`.
+
+The render needs a project and a template published to the environment of your key. Every organization has a `getting-started` project with a `welcome` template in `sandbox`, so `"project": "getting-started"`, `"template": "welcome"` and `"data": {"name": "World"}` work with a fresh `sandbox` key.
+
+## Example
+
+```python
+# main.py
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+from poli_page import PoliPage
+
+from poli_page_fastapi import PdfResponse, get_poli_page_client, setup_poli_page
+
+app = FastAPI()
+setup_poli_page(app)
+
+Client = Annotated[PoliPage, Depends(get_poli_page_client)]
+
+
+@app.get("/invoice/{invoice_id}.pdf", response_class=PdfResponse)
+def invoice_pdf(invoice_id: str, client: Client) -> PdfResponse:
+    pdf = client.render.pdf({
+        "project": "billing",
+        "template": "invoice",
+        "data": {"invoiceNumber": invoice_id},
+    })
+    return PdfResponse(pdf, filename=f"invoice-{invoice_id}.pdf")
+```
+
+Run it with `uvicorn main:app`. `GET /invoice/INV-001.pdf` answers the PDF as `invoice-INV-001.pdf`.
+
+## See also
+- [Client access](../../concepts/client-access/)
+- [Responses](../../concepts/responses/)
+- [Errors](../../production/errors/)

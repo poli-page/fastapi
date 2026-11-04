@@ -1,0 +1,89 @@
+---
+title: Responses
+description: Return PDFs, streamed PDFs, HTML previews and redirects to stored documents from FastAPI with the Poli Page response classes.
+---
+
+Four Starlette response classes put the right headers on what you return. They are plain Starlette responses, so they work with `response_class=` and with a returned instance alike.
+
+## PDF
+
+`PdfResponse(content, *, status_code=200, filename="document.pdf", inline=False, background=None, headers=None)` answers the bytes of `client.render.pdf(...)`.
+
+| Header | Value |
+| --- | --- |
+| `Content-Type` | `application/pdf` |
+| `Content-Disposition` | `attachment; filename="<filename>"`, or `inline` when `inline=True` |
+| `Cache-Control` | `no-store, private` |
+| `X-Content-Type-Options` | `nosniff` |
+
+Headers you pass in `headers` win over the defaults, except `Content-Disposition`, which the class always builds from `filename` and `inline`. The filename has its control characters removed, and `\` and `"` escaped. A filename with non-ASCII characters gets an ASCII fallback plus a `filename*=UTF-8''...` form (RFC 8187), so browsers show the real name.
+
+`status_code` is a parameter so FastAPI's OpenAPI generator can discover the default status when you use `response_class=PdfResponse`.
+
+## Streamed PDF
+
+`PdfStreamResponse(content, *, status_code=200, filename="document.pdf", inline=False, background=None, headers=None)` takes the same headers as `PdfResponse`. Pass it the SDK's stream as is: `PdfStreamResponse(client.render.pdf_stream(input))`.
+
+The render and the download's first request start when you build the response, inside the route. A `PoliPageError` therefore raises before the response starts and reaches the error handler. Do not open the stream inside a generator: an error raised once the body is streaming comes after the `200` is sent, and no handler can answer it.
+
+The response closes the SDK stream when it ends: read to the end, failed, or the client disconnected. It does so before it runs a `background` task. Because opening the stream is synchronous, build the response in a `def` route, or through `run_in_threadpool` from an `async def` route.
+
+An iterator of bytes, sync or async, is streamed as given. An error it raises comes after the `200` has been sent.
+
+## HTML preview
+
+`PreviewResponse(content, *, status_code=200, background=None, headers=None)` answers the stored HTML, the `html` of `client.documents.preview(id)`, as `text/html; charset=utf-8`, with `Cache-Control: no-store, private` and `X-Content-Type-Options: nosniff`.
+
+## Redirect to a stored document
+
+`DocumentRedirectResponse(url, *, permanent=False, background=None, headers=None)` redirects to a presigned URL with status `302`, or `308` when `permanent=True`. It sets `Location` and `Cache-Control: no-store, private`. The presigned URL of a stored document is `client.documents.get(id).presigned_pdf_url`. It expires, so redirect with the default `302` and let nothing cache the answer.
+
+## Example
+
+```python
+# main.py
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+from poli_page import PoliPage, RenderInput
+
+from poli_page_fastapi import (
+    DocumentRedirectResponse,
+    PdfResponse,
+    PdfStreamResponse,
+    PreviewResponse,
+    get_poli_page_client,
+    setup_poli_page,
+)
+
+app = FastAPI()
+setup_poli_page(app)
+
+Client = Annotated[PoliPage, Depends(get_poli_page_client)]
+INPUT: RenderInput = {"project": "billing", "template": "invoice", "data": {"invoiceNumber": "INV-001"}}
+
+
+@app.get("/invoice.pdf", response_class=PdfResponse)
+def invoice(client: Client) -> PdfResponse:
+    return PdfResponse(client.render.pdf(INPUT), filename="invoice-INV-001.pdf", inline=True)
+
+
+@app.get("/invoice-stream.pdf", response_class=PdfStreamResponse)
+def invoice_stream(client: Client) -> PdfStreamResponse:
+    return PdfStreamResponse(client.render.pdf_stream(INPUT), filename="invoice-INV-001.pdf")
+
+
+@app.get("/documents/{document_id}")
+def stored_pdf(document_id: str, client: Client) -> DocumentRedirectResponse:
+    return DocumentRedirectResponse(client.documents.get(document_id).presigned_pdf_url)
+
+
+@app.get("/documents/{document_id}/preview")
+def stored_preview(document_id: str, client: Client) -> PreviewResponse:
+    return PreviewResponse(client.documents.preview(document_id).html)
+```
+
+## See also
+- [Quick start](../../getting-started/quick-start/)
+- [Errors](../../production/errors/)
+- [API reference](../../reference/api/)

@@ -1,0 +1,149 @@
+---
+title: API
+description: Every public export of poli-page-fastapi, with signatures, defaults and error behavior.
+---
+
+Everything below is exported from `poli_page_fastapi`, as listed in the [`__init__.py`](https://github.com/poli-page/fastapi/blob/main/src/poli_page_fastapi/__init__.py) of the package. The client these helpers hand out is the SDK's `PoliPage`, documented under [SDK](../sdk/).
+
+## setup_poli_page
+
+```python
+def setup_poli_page(app: FastAPI, *, error_handler: bool = True) -> None
+```
+
+Sets up an app. It wraps the app's lifespan in `poli_page_lifespan`, so the client is built at startup and closed at shutdown, and your own lifespan still runs inside it. Unless `error_handler=False`, it registers `poli_page_exception_handler` for `PoliPageError`. Call it once, before the app starts: afterwards it raises `RuntimeError("Call setup_poli_page(app) before the app starts.")`.
+
+## get_poli_page_client
+
+```python
+@lru_cache(maxsize=1)
+def get_poli_page_client() -> PoliPage
+```
+
+The process-wide client, built from `PoliPageSettings()` on first use. It is the canonical `Depends(...)` target. In tests, override it with `app.dependency_overrides[get_poli_page_client]`. `get_poli_page_client.cache_clear()` drops the cached client.
+
+## PoliPageDependency
+
+```python
+class PoliPageDependency:
+    def __init__(
+        self,
+        *,
+        settings: PoliPageSettings | None = None,
+        client: PoliPage | None = None,
+    ) -> None
+    def __call__(self) -> PoliPage
+    def close(self) -> None
+```
+
+A callable dependency with its own client. With `client`, it serves that client. Otherwise it builds one from `settings`, or from `PoliPageSettings()` when none is given, on the first call, and keeps it. `close()` closes the client it holds and clears it.
+
+## PoliPageSettings
+
+```python
+class PoliPageSettings(BaseSettings):
+    api_key: str | None
+    base_url: str | None
+    timeout: float | None
+    max_retries: int | None
+    retry_delay: float | None
+```
+
+Reads `POLI_PAGE_API_KEY`, `POLI_PAGE_BASE_URL`, `POLI_PAGE_TIMEOUT`, `POLI_PAGE_MAX_RETRIES` and `POLI_PAGE_RETRY_DELAY`. An unset field is `None` and is not passed to the SDK. Ranges and the key check are on [Configuration](../../concepts/configuration/).
+
+## PdfResponse
+
+```python
+class PdfResponse(Response):
+    def __init__(
+        self,
+        content: bytes,
+        *,
+        status_code: int = 200,
+        filename: str = "document.pdf",
+        inline: bool = False,
+        background: BackgroundTask | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None
+```
+
+A PDF answer. `Content-Type: application/pdf`, a `Content-Disposition` built from `filename` (`attachment`, or `inline` when `inline=True`), `Cache-Control: no-store, private` and `X-Content-Type-Options: nosniff`. A `headers` entry replaces a default, except `Content-Disposition`.
+
+## PdfStreamResponse
+
+```python
+class PdfStreamResponse(StreamingResponse):
+    def __init__(
+        self,
+        content: AbstractContextManager[Iterator[bytes]] | Iterator[bytes] | AsyncIterator[bytes],
+        *,
+        status_code: int = 200,
+        filename: str = "document.pdf",
+        inline: bool = False,
+        background: BackgroundTask | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None
+```
+
+A streamed PDF answer with the headers of `PdfResponse`. Given the SDK's stream (a context manager, as `client.render.pdf_stream(input)` returns), it opens it in the constructor, so a `PoliPageError` raises before the response starts, and closes it when the response ends, before the `background` task. Given an iterator, it streams it as is.
+
+## PreviewResponse
+
+```python
+class PreviewResponse(Response):
+    def __init__(
+        self,
+        content: str,
+        *,
+        status_code: int = 200,
+        background: BackgroundTask | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None
+```
+
+An HTML answer, `Content-Type: text/html; charset=utf-8`, with `Cache-Control: no-store, private` and `X-Content-Type-Options: nosniff`.
+
+## DocumentRedirectResponse
+
+```python
+class DocumentRedirectResponse(Response):
+    def __init__(
+        self,
+        url: str,
+        *,
+        permanent: bool = False,
+        background: BackgroundTask | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None
+```
+
+A redirect to `url`: status `302`, or `308` when `permanent=True`. It sets `Location` and `Cache-Control: no-store, private`, and has an empty body.
+
+## poli_page_exception_handler
+
+```python
+def poli_page_exception_handler(request: Request, exc: Exception) -> JSONResponse
+```
+
+Answers a `PoliPageError` with `exc.to_payload()` and the payload's `status`, or `500` when it is `null`, with `Cache-Control: no-store, private`. Any other exception is re-raised. The status table is on [Errors](../../production/errors/).
+
+## poli_page_lifespan
+
+```python
+@asynccontextmanager
+async def poli_page_lifespan(app: FastAPI) -> AsyncIterator[None]
+```
+
+An ASGI lifespan that builds the shared client at startup, and at shutdown closes it and clears the `get_poli_page_client` cache. Use it as `FastAPI(lifespan=poli_page_lifespan)`, or let `setup_poli_page` wrap it. It registers no error handler.
+
+## __version__
+
+```python
+__version__: str
+```
+
+The package version.
+
+## Not re-exported
+
+The package re-exports no SDK type. Import `PoliPage`, `PoliPageError` and the error subclasses from `poli_page`.

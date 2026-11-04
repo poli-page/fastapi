@@ -1,0 +1,82 @@
+---
+title: Errors
+description: How a PoliPageError becomes a JSON answer in FastAPI, the status mapping, and how to handle SDK errors yourself.
+---
+
+The SDK raises one exception family rooted at `PoliPageError`. `setup_poli_page(app)` registers a handler that answers it as JSON, so a route that lets an SDK error through needs no `try` block.
+
+## The error
+
+Every SDK error is a `PoliPageError` with `code`, `message`, `status` (`None` when there is no HTTP status) and `request_id`. The subclasses you catch most are `AuthenticationError`, `RateLimitError`, `BadRequestError` and `UnprocessableEntityError` (API rejections), and `APIConnectionError` and `APITimeoutError` (transport). Two codes come from the SDK itself: `invalid_response` (`InvalidResponseError`, a `2xx` whose body is not JSON) and `io_error` (from `render_to_file`, when it cannot write the file, with the `OSError` as `__cause__`). The SDK's [Errors](https://poli-page.github.io/sdk-python/production/errors/) page lists every code.
+
+## What the handler answers
+
+`poli_page_exception_handler` answers a `PoliPageError` with the SDK's `exc.to_payload()`, which is exactly `{"code", "message", "status", "requestId"}`, `Content-Type: application/json` and `Cache-Control: no-store, private`.
+
+```json
+{
+  "code": "TEMPLATE_NOT_FOUND",
+  "message": "Template 'does-not-exist' not found in project 'getting-started'.",
+  "status": 404,
+  "requestId": "req_..."
+}
+```
+
+The HTTP status is the payload's `status`:
+
+| Error | HTTP status |
+| --- | --- |
+| An API error | The API's status |
+| `network_error` | `503` |
+| `timeout` | `504` |
+| `invalid_response` (usually a proxy between the SDK and the API) | `502` |
+| No status, such as `io_error` or a `DOWNLOAD_FAILED` without a storage status | `500`, with `"status": null` in the body |
+
+An exception that is not a `PoliPageError` is re-raised, so your own handling applies.
+
+## Handle errors yourself
+
+Turn the handler off with `setup_poli_page(app, error_handler=False)`, or catch the error in the route when one case needs its own answer. To register the handler without `setup_poli_page`, call `app.add_exception_handler(PoliPageError, poli_page_exception_handler)`. `FastAPI(lifespan=poli_page_lifespan)` on its own registers no handler.
+
+Register the handler before the app starts: `setup_poli_page` raises `RuntimeError` afterwards, because Starlette copies the handlers when it builds its middleware stack on the first request.
+
+For a streamed PDF, build the `PdfStreamResponse` in the route, so its errors reach the handler (see [Responses](../../concepts/responses/)).
+
+## Example
+
+```python
+# main.py
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+from fastapi.responses import JSONResponse, Response
+from poli_page import PoliPage, RateLimitError
+
+from poli_page_fastapi import PdfResponse, get_poli_page_client, setup_poli_page
+
+app = FastAPI()
+setup_poli_page(app)
+
+Client = Annotated[PoliPage, Depends(get_poli_page_client)]
+
+
+@app.get("/invoice/{invoice_id}.pdf")
+def invoice_pdf(invoice_id: str, client: Client) -> Response:
+    try:
+        pdf = client.render.pdf({
+            "project": "billing",
+            "template": "invoice",
+            "data": {"invoiceNumber": invoice_id},
+        })
+    except RateLimitError as exc:
+        return JSONResponse(
+            status_code=429,
+            content={"code": exc.code, "requestId": exc.request_id},
+        )
+    return PdfResponse(pdf, filename=f"invoice-{invoice_id}.pdf")
+```
+
+## See also
+- [Configuration](../../concepts/configuration/)
+- [Responses](../../concepts/responses/)
+- [Testing](../testing/)

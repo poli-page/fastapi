@@ -1,0 +1,75 @@
+---
+title: Testing
+description: Test FastAPI routes that render Poli Page documents without calling the API, with a dependency override and a faked SDK error.
+---
+
+Your routes reach the API through one dependency, `get_poli_page_client`. In tests you override it with a fake, so the route, the response classes and the error handler run without a network call.
+
+## Override the client
+
+Set `app.dependency_overrides[get_poli_page_client] = lambda: fake`. The fake needs only the methods your route calls, such as `render.pdf`. If your routes use a `PoliPageDependency` instance, override that instance instead.
+
+Use a bare `TestClient(app)`. The `with TestClient(app):` form runs the lifespan, and `setup_poli_page` builds the real client at startup, outside the dependency overrides. That needs a valid `POLI_PAGE_API_KEY`, for example `pp_sandbox_` followed by 32 hex characters, and it replaces nothing. A bare `TestClient` skips the lifespan and still goes through the registered error handler.
+
+## Fake an error
+
+Make a fake method raise an SDK error, built as `NotFoundError(message, code=..., status=..., request_id=...)`. The error handler answers it as in production, so you can assert the JSON body and the status.
+
+## Example
+
+```python
+# tests/test_invoice.py
+from unittest.mock import MagicMock
+
+from fastapi.testclient import TestClient
+from poli_page import NotFoundError
+
+from main import app
+from poli_page_fastapi import get_poli_page_client
+
+
+def test_invoice_pdf() -> None:
+    fake = MagicMock()
+    fake.render.pdf.return_value = b"%PDF-1.7"
+    app.dependency_overrides[get_poli_page_client] = lambda: fake
+    try:
+        response = TestClient(app).get("/invoice/INV-001.pdf")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.headers["content-disposition"] == 'attachment; filename="invoice-INV-001.pdf"'
+    fake.render.pdf.assert_called_once_with({
+        "project": "billing",
+        "template": "invoice",
+        "data": {"invoiceNumber": "INV-001"},
+    })
+
+
+def test_missing_template_is_a_404_json() -> None:
+    fake = MagicMock()
+    fake.render.pdf.side_effect = NotFoundError(
+        "Template 'invoice' not found in project 'billing'.",
+        code="TEMPLATE_NOT_FOUND",
+        status=404,
+        request_id="req_123",
+    )
+    app.dependency_overrides[get_poli_page_client] = lambda: fake
+    try:
+        response = TestClient(app).get("/invoice/INV-001.pdf")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "code": "TEMPLATE_NOT_FOUND",
+        "message": "Template 'invoice' not found in project 'billing'.",
+        "status": 404,
+        "requestId": "req_123",
+    }
+```
+
+## See also
+- [Client access](../../concepts/client-access/)
+- [Errors](../errors/)

@@ -1,0 +1,61 @@
+---
+title: Install
+description: Install poli-page-fastapi, set your API key and call setup_poli_page on your FastAPI app.
+---
+
+The FastAPI integration ships as `poli-page-fastapi` on PyPI. It wraps the Python SDK, `poli-page`, in a memoised client dependency and Starlette response classes: you install one package, which brings the SDK with it.
+
+## Requirements
+
+- Python 3.11, 3.12 or 3.13
+- FastAPI `>=0.100,<1.0`, with Pydantic v2 and pydantic-settings v2
+- The `poli-page` Python SDK 0.13.x, installed with the package (`poli-page>=0.13,<0.14`)
+- A Poli Page API key, from [app.poli.page](https://app.poli.page) under **Settings → API Keys**
+
+CI tests Python 3.11, 3.12 and 3.13 against FastAPI 0.100 and 0.110, and against the FastAPI version in the repo's lock file.
+
+## Install the package
+
+```bash
+pip install poli-page-fastapi
+```
+
+## Set your API key
+
+Put the key in the environment your app starts with:
+
+```bash
+export POLI_PAGE_API_KEY=pp_sandbox_your_key_here
+```
+
+The package does not call `load_dotenv()` for you. Load your `.env` file yourself, or give pydantic-settings an `env_file`.
+
+A key is `pp_{environment}_{32 lowercase hex}`, where `{environment}` is the environment it belongs to. The key alone selects the environment, so a render never names a version:
+
+| Environment | Key | Watermark | Counted |
+| --- | --- | --- | --- |
+| `sandbox` (every org) | `pp_sandbox_…` | yes | no |
+| `live` (every org, deletable on Pro+) | `pp_live_…` | no | yes |
+| created on Pro+ (e.g. `staging`) | `pp_staging_…` | no | yes |
+
+"Counted" means the render counts toward the organization's monthly PDF quota.
+
+## Set up the app
+
+Call `setup_poli_page(app)` once, before the app starts. It builds the client at startup, closes it at shutdown and registers the error handler. Your own `lifespan` still runs, inside it. After the app has started, `setup_poli_page` raises `RuntimeError`.
+
+## Example
+
+```python
+# main.py
+from fastapi import FastAPI
+
+from poli_page_fastapi import setup_poli_page
+
+app = FastAPI()
+setup_poli_page(app)
+```
+
+## See also
+- [Quick start](../quick-start/)
+- [Configuration](../../concepts/configuration/)
