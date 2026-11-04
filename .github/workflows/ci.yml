@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write  # Why: codecov-action uses OIDC for tokenless uploads on public repos.
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -54,7 +58,17 @@ jobs:
       - name: Unit tests
         env:
           POLI_CONTRACT: ${{ steps.contract.outputs.path }}
-        run: uv run --no-sync pytest tests/unit -v
+        run: uv run --no-sync pytest tests/unit -v --cov=poli_page_fastapi --cov-report=xml --cov-report=term
+      - name: Upload coverage to Codecov
+        # Why: only upload from one matrix slot to avoid duplicate reports.
+        # use_oidc is required: Codecov rejects tokenless uploads on the default
+        # (protected) branch, and we've granted id-token: write at the workflow level.
+        if: matrix.python == '3.12' && matrix.fastapi == '0.110' && hashFiles('coverage.xml') != ''
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+          use_oidc: true
       # The example app is its own uv project (its own uv.lock) with the package
       # installed from this checkout.
       - name: Example app install

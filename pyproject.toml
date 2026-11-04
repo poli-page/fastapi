@@ -36,6 +36,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
+    "pytest-cov>=5",
     "pytest-asyncio>=0.23",
     "pytest-mock>=3.12",
     "httpx>=0.25",
@@ -49,7 +50,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://poli.page"
-Documentation = "https://docs.poli.page/reference/sdk/"
+Documentation = "https://poli-page.github.io/fastapi/"
 Source = "https://github.com/poli-page/fastapi"
 Issues = "https://github.com/poli-page/fastapi/issues"
 Changelog = "https://github.com/poli-page/fastapi/blob/main/CHANGELOG.md"
