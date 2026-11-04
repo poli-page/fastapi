@@ -9,7 +9,7 @@ Your routes reach the API through one dependency, `get_poli_page_client`. In tes
 
 Set `app.dependency_overrides[get_poli_page_client] = lambda: fake`. The fake needs only the methods your route calls, such as `render.pdf`. If your routes use a `PoliPageDependency` instance, override that instance instead.
 
-Use a bare `TestClient(app)`. The `with TestClient(app):` form runs the lifespan, and `setup_poli_page` builds the real client at startup, outside the dependency overrides. That needs a valid `POLI_PAGE_API_KEY`, for example `pp_sandbox_` followed by 32 hex characters, and it replaces nothing. A bare `TestClient` skips the lifespan and still goes through the registered error handler.
+Use a bare `TestClient(app)`. The `with TestClient(app):` form runs the lifespan, and `setup_poli_page` builds the real client at startup, outside the dependency overrides. That needs `POLI_PAGE_API_KEY` to be set to a non-empty value, and it replaces nothing. A bare `TestClient` skips the lifespan and still goes through the registered error handler.
 
 ## Fake an error
 

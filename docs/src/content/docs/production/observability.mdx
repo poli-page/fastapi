@@ -20,6 +20,8 @@ description: Log Poli Page retries and failures from FastAPI by building the cli
 
 `setup_poli_page` and `poli_page_lifespan` manage only the shared `get_poli_page_client` client. A client you build is yours to close: call `close()` on the dependency at shutdown.
 
+`setup_poli_page` also builds the shared client at startup, so an app that calls it and serves its own client runs two clients. To run only yours, skip `setup_poli_page`: register `poli_page_exception_handler` with `app.add_exception_handler`, as the example does, and close your client in your own lifespan.
+
 ## Request IDs
 
 `error.request_id` is the API's `x-request-id`. Log it: it is what Poli Page support asks for. The error handler also sends it as `requestId` in the JSON body of every error answer.
@@ -37,7 +39,7 @@ from typing import Annotated
 from fastapi import Depends, FastAPI
 from poli_page import PoliPage, PoliPageError, RetryEvent
 
-from poli_page_fastapi import PdfResponse, PoliPageDependency, setup_poli_page
+from poli_page_fastapi import PdfResponse, PoliPageDependency, poli_page_exception_handler
 
 logger = logging.getLogger("poli_page")
 
@@ -66,7 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
-setup_poli_page(app)
+app.add_exception_handler(PoliPageError, poli_page_exception_handler)
 
 Client = Annotated[PoliPage, Depends(observed)]
 
