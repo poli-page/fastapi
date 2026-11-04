@@ -73,11 +73,13 @@ Client = Annotated[PoliPage, Depends(get_poli_page_client)]
 
 @app.get("/invoice/{invoice_id}.pdf", response_class=PdfResponse)
 def invoice_pdf(invoice_id: str, client: Client) -> PdfResponse:
-    pdf = client.render.pdf({
-        "project": "invoices",
-        "template": "monthly",
-        "data": {"invoice_id": invoice_id},
-    })
+    pdf = client.render.pdf(
+        {
+            "project": "invoices",
+            "template": "monthly",
+            "data": {"invoice_id": invoice_id},
+        }
+    )
     return PdfResponse(pdf, filename=f"invoice-{invoice_id}.pdf")
 ```
 
