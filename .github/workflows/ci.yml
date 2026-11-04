@@ -50,7 +50,7 @@ jobs:
         run: uv run --no-sync mypy src tests example-app/tests
       - name: API contract
         id: contract
-        uses: poli-page/api-contract@1f705b3ce3e15ff56e2f7b8249c1a2983af2312c # v1.3.0
+        uses: poli-page/api-contract@1f705b3ce3e15ff56e2f7b8249c1a2983af2312c # v0.13.0
       - name: Unit tests
         env:
           POLI_CONTRACT: ${{ steps.contract.outputs.path }}

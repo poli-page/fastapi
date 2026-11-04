@@ -20,7 +20,9 @@ def poli_page_exception_handler(request: Request, exc: Exception) -> JSONRespons
 
     Body: exactly `exc.to_payload()`, `{code, message, status, requestId}` (camelCase
     on the wire, `null` when unknown). Status: the payload's `status` (the API status,
-    503 for `network_error`, 504 for `timeout`), or 500 when it is `null`.
+    503 for `network_error`, 504 for `timeout`, 502 for `invalid_response`), or 500 when
+    it is `null` (`io_error`, `invalid_options`, a `DOWNLOAD_FAILED` with no storage
+    status).
 
     Any other exception is re-raised, so the application's own handling applies.
     """

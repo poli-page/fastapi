@@ -66,8 +66,8 @@ reviews:
         FastAPI >=0.100 and pydantic v2.
     - path: "src/poli_page_fastapi/{exceptions,responses,_headers}.py"
       instructions: >-
-        SDK errors must surface as typed JSON responses matching the API error shape
-        ({ error: CODE_STRING, detail?, issues? } (flat, API spec §4.1)). PDF responses must send the correct Content-Type, an RFC 5987
+        SDK errors must surface as JSON responses whose body is exactly the SDK's to_payload()
+        ({code, message, status, requestId}), forwarded as is. PDF responses must send the correct Content-Type, an RFC 5987
         Content-Disposition (non-ASCII and quote-safe filenames, no header injection) and
         Cache-Control.
     - path: "src/poli_page_fastapi/{settings,dependencies,lifespan}.py"
