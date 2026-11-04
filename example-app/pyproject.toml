@@ -5,7 +5,7 @@ description = "Interactive demo of poli-page-fastapi"
 requires-python = ">=3.11"
 dependencies = [
     "poli-page-fastapi",
-    "poli-page>=0.11.0,<2",
+    "poli-page>=0.13,<0.14",
     "uvicorn[standard]>=0.27",
     "python-dotenv>=1.0",
 ]

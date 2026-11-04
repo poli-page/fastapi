@@ -14,6 +14,7 @@ from poli_page import (
     ConflictError,
     GoneError,
     InternalServerError,
+    InvalidResponseError,
     NotFoundError,
     PermissionDeniedError,
     PoliPageError,
@@ -115,6 +116,41 @@ def test_error_without_status_answers_500_with_null_status() -> None:
     }
 
 
+def test_invalid_response_answers_502_not_its_2xx() -> None:
+    # A 2xx whose body is not JSON (a proxy between the SDK and the API): to_payload()
+    # says 502, the error keeps the real 2xx.
+    exc = InvalidResponseError(
+        "Invalid response: HTTP 200 body is not JSON",
+        code="invalid_response",
+        status=200,
+        request_id="req_proxy",
+    )
+    resp = poli_page_exception_handler(_fake_request(), exc)
+    assert resp.status_code == 502
+    assert _body(resp) == {
+        "code": "invalid_response",
+        "message": "Invalid response: HTTP 200 body is not JSON",
+        "status": 502,
+        "requestId": "req_proxy",
+    }
+    assert exc.status == 200
+
+
+def test_io_error_answers_500_with_null_status() -> None:
+    # render_to_file() could not write the file: no status.
+    exc = PoliPageError(
+        "Failed to write PDF: out/welcome.pdf: No space left on device", code="io_error"
+    )
+    resp = poli_page_exception_handler(_fake_request(), exc)
+    assert resp.status_code == 500
+    assert _body(resp) == {
+        "code": "io_error",
+        "message": "Failed to write PDF: out/welcome.pdf: No space left on device",
+        "status": None,
+        "requestId": None,
+    }
+
+
 @pytest.mark.parametrize(
     "exc",
     [
@@ -122,8 +158,12 @@ def test_error_without_status_answers_500_with_null_status() -> None:
         APIConnectionError("Network request failed", code="network_error"),
         APITimeoutError("Request timed out after 60000ms", code="timeout"),
         PoliPageError("apiKey is required", code="invalid_options"),
+        InvalidResponseError(
+            "Invalid response: HTTP 200 body is not JSON", code="invalid_response", status=200
+        ),
+        PoliPageError("Failed to write PDF: out.pdf: Permission denied", code="io_error"),
     ],
-    ids=["api", "network_error", "timeout", "no-status"],
+    ids=["api", "network_error", "timeout", "no-status", "invalid_response", "io_error"],
 )
 def test_body_is_exactly_to_payload(exc: PoliPageError) -> None:
     resp = poli_page_exception_handler(_fake_request(), exc)

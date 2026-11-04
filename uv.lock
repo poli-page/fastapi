@@ -677,14 +677,14 @@ wheels = [
 
 [[package]]
 name = "poli-page"
-version = "0.11.0"
+version = "0.13.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1b/75/3f78e5875adb1a2371886b3304ea91092951fdfdb53f79383d9fa14186c7/poli_page-0.11.0.tar.gz", hash = "sha256:b3a23fbe393b6a90263f18f705e85ba992ec52006f018bf431cd93dbc4b10279", size = 96372, upload-time = "2026-10-30T09:06:31.893Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/8e/ce69ee40108c6f5dc2b5766f1f30e2f11397973882f0d680f5dbb862949f/poli_page-0.13.0.tar.gz", hash = "sha256:29957eac36734cc8749dfab3d9a462d216718a1a43b3efeedf707754f2f065d8", size = 118964, upload-time = "2026-11-04T13:27:32.76Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/aa/ad63445ea2a6404698551bc3632b5fdf2ef3b9fa89c7308aad95f97c0e95/poli_page-0.11.0-py3-none-any.whl", hash = "sha256:f4d474146d42c52e93b4617068811a0243f63a5e5505127e916e643861fdd11c", size = 34957, upload-time = "2026-10-30T09:06:30.599Z" },
+    { url = "https://files.pythonhosted.org/packages/02/5e/9db039882243b33c0a310bb992f27d70e6f8d07e3c3bdf15bfa1c68750e8/poli_page-0.13.0-py3-none-any.whl", hash = "sha256:5d3e0d7e3d7a2f3fe62e788c3b3075d1038ba83b7c71cdf0d3df68a05197944a", size = 41802, upload-time = "2026-11-04T13:27:31.162Z" },
 ]
 
 [[package]]
@@ -719,7 +719,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.100,<1.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.25" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "poli-page", specifier = ">=0.11.0,<2" },
+    { name = "poli-page", specifier = ">=0.13,<0.14" },
     { name = "pydantic", specifier = ">=2.0,<3" },
     { name = "pydantic-settings", specifier = ">=2.0,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },

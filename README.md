@@ -22,7 +22,7 @@ This package exposes the Poli Page Python SDK as a FastAPI dependency: a memoise
 - Python 3.11, 3.12, or 3.13
 - FastAPI `>=0.100,<1.0`
 - Pydantic v2 and pydantic-settings v2
-- The `poli-page` Python SDK 0.11.0 or later (installed with the package, `poli-page>=0.11.0,<2`)
+- The `poli-page` Python SDK 0.13.x (installed with the package, `poli-page>=0.13,<0.14`)
 
 ## Install
 
@@ -30,7 +30,7 @@ This package exposes the Poli Page Python SDK as a FastAPI dependency: a memoise
 pip install poli-page-fastapi
 ```
 
-This installs the `poli-page` SDK 0.11.0 or later with it.
+This installs the `poli-page` SDK 0.13.x with it.
 
 Set the API key in your environment before the app starts:
 
@@ -91,7 +91,7 @@ Run with `uvicorn main:app` and `GET /invoice/42.pdf` returns a PDF with the cor
 | ------------------------ | ------------- | ------- | ------------------------------------------- |
 | `POLI_PAGE_API_KEY`      | `api_key`     | `str`   | Required: missing or empty, building the client raises `PoliPageError`. A value that is not `pp_{environment}_{32 lowercase hex}` logs one warning, then the API decides (see [API keys](#api-keys)). |
 | `POLI_PAGE_BASE_URL`     | `base_url`    | `str`   | Override for sandbox or regional endpoints. |
-| `POLI_PAGE_TIMEOUT`      | `timeout`     | `float` | Per-request timeout in seconds, `(0, 600]`. |
+| `POLI_PAGE_TIMEOUT`      | `timeout`     | `float` | Per-request timeout in seconds, `(0, 600]`. It also bounds the PDF download: a download that outlasts it raises `DOWNLOAD_FAILED` (answered `500`), not `timeout`. |
 | `POLI_PAGE_MAX_RETRIES`  | `max_retries` | `int`   | Retries per failed request, `[0, 10]`.      |
 | `POLI_PAGE_RETRY_DELAY`  | `retry_delay` | `float` | Initial backoff in seconds, `[0, 30]`.      |
 
@@ -123,7 +123,7 @@ sandbox = PoliPageDependency(
 | `poli_page_exception_handler` | The error handler: answers a `PoliPageError` with its `to_payload()` JSON. |
 | `poli_page_lifespan`        | ASGI lifespan that warms the client on startup and closes on shutdown. |
 
-Full reference: [docs/api.md](docs/api.md).
+Full reference: the exports of [`src/poli_page_fastapi/__init__.py`](https://github.com/poli-page/fastapi/blob/main/src/poli_page_fastapi/__init__.py) and their docstrings, and the [SDK reference](https://docs.poli.page/reference/sdk/).
 
 ## Errors
 
@@ -132,7 +132,7 @@ Full reference: [docs/api.md](docs/api.md).
 `setup_poli_page(app)` registers `poli_page_exception_handler` for `PoliPageError`. A route that lets an SDK error through answers JSON:
 
 - the body is the SDK's `exc.to_payload()`, exactly `{"code", "message", "status", "requestId"}`;
-- the HTTP status is that payload's `status`: the API's status for an API error, `503` for `network_error`, `504` for `timeout`, and `500` when the error has none (the body's `status` is then `null`);
+- the HTTP status is that payload's `status`: the API's status for an API error, `503` for `network_error`, `504` for `timeout`, `502` for `invalid_response` (a `2xx` whose body is not JSON, usually from a proxy between the SDK and the API), and `500` when the error has none, such as `io_error` (`render_to_file` could not write the file) or a `DOWNLOAD_FAILED` without a storage status (the body's `status` is then `null`);
 - `Content-Type: application/json`, with `Cache-Control: no-store, private`.
 
 ```json
@@ -163,6 +163,8 @@ The SDK raises one exception family rooted at `PoliPageError`. The four categori
 - **Request rejected** — `BadRequestError`, `UnprocessableEntityError` (4xx subclasses of `APIStatusError`)
 - **Network / transport** — `APIConnectionError`, `APITimeoutError`
 
+Two more codes come from the SDK itself: `invalid_response` (`InvalidResponseError`, a `2xx` whose body is not JSON) and `io_error` (a `PoliPageError` from `render_to_file` when it cannot write the file, with the `OSError` as `__cause__`).
+
 Catch one in the route when it needs its own answer:
 
 ```python
@@ -185,7 +187,7 @@ def invoice_pdf(invoice_id: str, client: Client) -> PdfResponse:
 
 ## Example app
 
-[`example-app/`](./example-app/) is a self-contained FastAPI app with an interactive dashboard at `GET /`. It exercises every SDK method — `render.pdf`, `render.pdf_stream`, `render.document`, document retrieval, `documents.preview`, thumbnails, and deletion — and demonstrates `setup_poli_page()`, `Depends()`, the response helpers and the default error handler (`GET /errors/not-found` answers `404 TEMPLATE_NOT_FOUND`). Set `POLI_PAGE_API_KEY` to a sandbox key (`pp_sandbox_…`); `POLI_PAGE_BASE_URL` is optional.
+[`example-app/`](https://github.com/poli-page/fastapi/tree/main/example-app) is a self-contained FastAPI app with an interactive dashboard at `GET /`. It exercises every SDK method — `render.pdf`, `render.pdf_stream`, `render.document`, document retrieval, `documents.preview`, thumbnails, and deletion — and demonstrates `setup_poli_page()`, `Depends()`, the response helpers and the default error handler (`GET /errors/not-found` answers `404 TEMPLATE_NOT_FOUND`). Set `POLI_PAGE_API_KEY` to a sandbox key (`pp_sandbox_…`); `POLI_PAGE_BASE_URL` is optional.
 
 ```bash
 cd example-app
@@ -200,18 +202,18 @@ Open <http://localhost:8000>.
 The following deep dives are forthcoming under `docs/`:
 
 - `docs/lifespan.md` — wiring `poli_page_lifespan` by hand instead of `setup_poli_page`.
-- `docs/async.md` — calling the sync client from `async def` routes via `run_in_threadpool`, and the path to native `AsyncPoliPage` in v0.2.
+- `docs/async.md` — calling the sync client from `async def` routes via `run_in_threadpool`, and the path to the native `AsyncPoliPage`.
 - `docs/testing.md` — overriding `get_poli_page_client` with `app.dependency_overrides`, and the `TestClient` context-manager requirement.
 - `docs/errors.md` — the full status mapping the global exception handler applies.
 - `docs/responses.md` — RFC 5987 filename encoding, `inline=True`, and streaming responses.
 
 ## Compatibility
 
-| Package version | FastAPI                | Python              |
-| --------------- | ---------------------- | ------------------- |
-| 0.11.x          | `^0.100`, `^0.110`     | 3.11, 3.12, 3.13    |
+| Package version | `poli-page` SDK | FastAPI                | Python              |
+| --------------- | --------------- | ---------------------- | ------------------- |
+| 0.13.x          | 0.13.x          | `^0.100`, `^0.110`     | 3.11, 3.12, 3.13    |
 
-Tested against the FastAPI versions listed above; other 0.x releases in that range are expected to work. The SDK requirement is `poli-page>=0.11.0,<2`.
+Tested against the FastAPI versions listed above; other 0.x releases in that range are expected to work. The package shares its major.minor with the Poli Page API and requires the SDK of the same minor: `poli-page>=0.13,<0.14`.
 
 ## Contributing
 
@@ -231,4 +233,4 @@ Without `POLI_CONTRACT` the test is skipped (in CI it fails). `example-app/tests
 
 ## License
 
-Released under the MIT License — see [LICENSE](./LICENSE).
+Released under the MIT License — see [LICENSE](https://github.com/poli-page/fastapi/blob/main/LICENSE).
