@@ -123,7 +123,7 @@ sandbox = PoliPageDependency(
 | `poli_page_exception_handler` | The error handler: answers a `PoliPageError` with its `to_payload()` JSON. |
 | `poli_page_lifespan`        | ASGI lifespan that warms the client on startup and closes on shutdown. |
 
-Full reference: the exports of [`src/poli_page_fastapi/__init__.py`](src/poli_page_fastapi/__init__.py) and their docstrings, and the [SDK reference](https://docs.poli.page/reference/sdk/).
+Full reference: the exports of [`src/poli_page_fastapi/__init__.py`](https://github.com/poli-page/fastapi/blob/main/src/poli_page_fastapi/__init__.py) and their docstrings, and the [SDK reference](https://docs.poli.page/reference/sdk/).
 
 ## Errors
 
@@ -187,7 +187,7 @@ def invoice_pdf(invoice_id: str, client: Client) -> PdfResponse:
 
 ## Example app
 
-[`example-app/`](./example-app/) is a self-contained FastAPI app with an interactive dashboard at `GET /`. It exercises every SDK method — `render.pdf`, `render.pdf_stream`, `render.document`, document retrieval, `documents.preview`, thumbnails, and deletion — and demonstrates `setup_poli_page()`, `Depends()`, the response helpers and the default error handler (`GET /errors/not-found` answers `404 TEMPLATE_NOT_FOUND`). Set `POLI_PAGE_API_KEY` to a sandbox key (`pp_sandbox_…`); `POLI_PAGE_BASE_URL` is optional.
+[`example-app/`](https://github.com/poli-page/fastapi/tree/main/example-app) is a self-contained FastAPI app with an interactive dashboard at `GET /`. It exercises every SDK method — `render.pdf`, `render.pdf_stream`, `render.document`, document retrieval, `documents.preview`, thumbnails, and deletion — and demonstrates `setup_poli_page()`, `Depends()`, the response helpers and the default error handler (`GET /errors/not-found` answers `404 TEMPLATE_NOT_FOUND`). Set `POLI_PAGE_API_KEY` to a sandbox key (`pp_sandbox_…`); `POLI_PAGE_BASE_URL` is optional.
 
 ```bash
 cd example-app
@@ -233,4 +233,4 @@ Without `POLI_CONTRACT` the test is skipped (in CI it fails). `example-app/tests
 
 ## License
 
-Released under the MIT License — see [LICENSE](./LICENSE).
+Released under the MIT License — see [LICENSE](https://github.com/poli-page/fastapi/blob/main/LICENSE).
