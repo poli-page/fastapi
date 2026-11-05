@@ -46,3 +46,7 @@ example-app/output/
 CLAUDE.md
 docs/plan/
 docs/spec/
+
+# Docs site
+docs/.astro/
+coverage.xml

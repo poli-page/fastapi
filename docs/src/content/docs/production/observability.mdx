@@ -1,0 +1,86 @@
+---
+title: Observability
+description: Log Poli Page retries and failures from FastAPI by building the client with the SDK's on_retry and on_error hooks.
+---
+
+`poli-page-fastapi` ships no hooks of its own: `PoliPageSettings` carries no callbacks, and the package has no signal or event bridge. The observability hooks are the SDK's, and you reach them by building the client yourself and handing it to `PoliPageDependency`.
+
+## The SDK hooks
+
+`PoliPage` accepts two optional sync callables:
+
+- `on_retry(event)` fires before each retry sleep. `event` is a `poli_page.RetryEvent` with `attempt` (the attempt about to be made, `2` for the first retry), `delay_ms` (the sleep before it) and `reason` (the `PoliPageError` that caused the retry).
+- `on_error(error)` fires when a request fails for good, after the retries are exhausted or when the error is not retryable. `error` is the `PoliPageError`.
+
+`PoliPage` also takes `on_request` and `on_response` hooks and an `http_client`. The [SDK's Observability page](https://poli-page.github.io/sdk-python/production/observability/) covers them, and the silent `poli_page` logger.
+
+## Use the hooks with the dependency
+
+`PoliPageDependency(client=...)` serves the client you built, so your hooks are in place. Build it once at module level and use it in place of `get_poli_page_client`.
+
+`setup_poli_page` and `poli_page_lifespan` manage only the shared `get_poli_page_client` client. A client you build is yours to close: call `close()` on the dependency at shutdown.
+
+`setup_poli_page` also builds the shared client at startup, so an app that calls it and serves its own client runs two clients. To run only yours, skip `setup_poli_page`: register `poli_page_exception_handler` with `app.add_exception_handler`, as the example does, and close your client in your own lifespan.
+
+## Request IDs
+
+`error.request_id` is the API's `x-request-id`. Log it: it is what Poli Page support asks for. The error handler also sends it as `requestId` in the JSON body of every error answer.
+
+## Example
+
+```python
+# main.py
+import logging
+import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+from poli_page import PoliPage, PoliPageError, RetryEvent
+
+from poli_page_fastapi import PdfResponse, PoliPageDependency, poli_page_exception_handler
+
+logger = logging.getLogger("poli_page")
+
+
+def log_retry(event: RetryEvent) -> None:
+    logger.warning("retry %s in %.0fms: %s", event.attempt, event.delay_ms, event.reason.code)
+
+
+def log_error(error: PoliPageError) -> None:
+    logger.error("%s request_id=%s: %s", error.code, error.request_id or "-", error.message)
+
+
+observed = PoliPageDependency(
+    client=PoliPage(
+        api_key=os.environ["POLI_PAGE_API_KEY"],
+        on_retry=log_retry,
+        on_error=log_error,
+    ),
+)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    observed.close()
+
+
+app = FastAPI(lifespan=lifespan)
+app.add_exception_handler(PoliPageError, poli_page_exception_handler)
+
+Client = Annotated[PoliPage, Depends(observed)]
+
+
+@app.get("/welcome.pdf")
+def welcome(client: Client) -> PdfResponse:
+    pdf = client.render.pdf(
+        {"project": "getting-started", "template": "welcome", "data": {"name": "World"}}
+    )
+    return PdfResponse(pdf, filename="welcome.pdf")
+```
+
+## See also
+- [Client access](../../concepts/client-access/)
+- [Errors](../errors/)

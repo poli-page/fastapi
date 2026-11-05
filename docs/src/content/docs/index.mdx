@@ -1,0 +1,18 @@
+---
+title: Poli Page FastAPI integration
+description: Render Poli Page documents from FastAPI endpoints with poli-page-fastapi.
+template: splash
+hero:
+  tagline: Render Poli Page documents from FastAPI endpoints.
+  actions:
+    - { text: Quick start, link: /fastapi/getting-started/quick-start/, icon: rocket }
+    - { text: API reference, link: /fastapi/reference/api/, icon: open-book }
+---
+
+import { CardGrid, Card } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Quick start" icon="rocket">Call `setup_poli_page(app)` and return a PDF from a route with `Depends()`.</Card>
+  <Card title="Concepts" icon="puzzle">The `POLI_PAGE_*` settings, the client dependency, PDF, streamed and preview responses.</Card>
+  <Card title="API reference" icon="open-book">Every export of `poli-page-fastapi`, on one page.</Card>
+</CardGrid>

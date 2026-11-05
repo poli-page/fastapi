@@ -1,6 +1,21 @@
 # poli-page-fastapi
 
+[![Pypi](https://img.shields.io/pypi/v/poli-page-fastapi?style=flat&logo=python&logoColor=ffffff&label=Pypi&cacheSeconds=3600)](https://pypi.org/project/poli-page-fastapi/)
+[![Downloads](https://img.shields.io/pypi/dm/poli-page-fastapi?style=flat&logo=python&logoColor=ffffff&label=Downloads&cacheSeconds=3600)](https://pypi.org/project/poli-page-fastapi/)
+[![Ci](https://img.shields.io/github/actions/workflow/status/poli-page/fastapi/ci.yml?branch=main&style=flat&logo=githubactions&logoColor=ffffff&label=Ci)](https://github.com/poli-page/fastapi/actions/workflows/ci.yml)
+[![Codeql](https://img.shields.io/github/actions/workflow/status/poli-page/fastapi/codeql.yml?branch=main&style=flat&logo=github&logoColor=ffffff&label=Codeql)](https://github.com/poli-page/fastapi/actions/workflows/codeql.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/poli-page/fastapi?style=flat&logo=codecov&logoColor=ffffff&label=Coverage)](https://codecov.io/gh/poli-page/fastapi)
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue?style=flat&logo=python&logoColor=ffffff)](https://github.com/poli-page/fastapi)
+[![Fastapi](https://img.shields.io/badge/Fastapi-0.100%20%7C%200.110-blue?style=flat&logo=fastapi&logoColor=ffffff)](https://fastapi.tiangolo.com/)
+[![Types](https://img.shields.io/badge/Types-py.typed-blue?style=flat&logo=python&logoColor=ffffff)](https://peps.python.org/pep-0561/)
+[![Linter](https://img.shields.io/badge/Linter-Ruff-blue?style=flat&logo=python&logoColor=ffffff)](https://github.com/astral-sh/ruff)
+[![Deps](https://img.shields.io/badge/Deps-up%20to%20date-brightgreen?style=flat&logo=python&logoColor=ffffff)](https://github.com/poli-page/fastapi/network/dependencies)
+[![Docs](https://img.shields.io/badge/Docs-online-brightgreen?style=flat&logo=readthedocs&logoColor=ffffff)](https://poli-page.github.io/fastapi/)
+[![License](https://img.shields.io/github/license/poli-page/fastapi?style=flat&logo=gnu&logoColor=ffffff&label=License)](LICENSE)
+
 > Render Poli Page documents from FastAPI endpoints.
+
+→ **Documentation**: https://poli-page.github.io/fastapi/
 
 ## About
 
@@ -199,13 +214,11 @@ Open <http://localhost:8000>.
 
 ## Going further
 
-The following deep dives are forthcoming under `docs/`:
-
-- `docs/lifespan.md` — wiring `poli_page_lifespan` by hand instead of `setup_poli_page`.
-- `docs/async.md` — calling the sync client from `async def` routes via `run_in_threadpool`, and the path to the native `AsyncPoliPage`.
-- `docs/testing.md` — overriding `get_poli_page_client` with `app.dependency_overrides`, and the `TestClient` context-manager requirement.
-- `docs/errors.md` — the full status mapping the global exception handler applies.
-- `docs/responses.md` — RFC 5987 filename encoding, `inline=True`, and streaming responses.
+- Wiring `poli_page_lifespan` by hand instead of `setup_poli_page`: [Client access](https://poli-page.github.io/fastapi/concepts/client-access/).
+- Calling the sync client from `async def` routes via `run_in_threadpool`: [Client access](https://poli-page.github.io/fastapi/concepts/client-access/).
+- Overriding `get_poli_page_client` with `app.dependency_overrides`, and the `TestClient` context-manager requirement: [Testing](https://poli-page.github.io/fastapi/production/testing/).
+- The full status mapping the global exception handler applies: [Errors](https://poli-page.github.io/fastapi/production/errors/).
+- RFC 8187 filename encoding, `inline=True`, and streaming responses: [Responses](https://poli-page.github.io/fastapi/concepts/responses/).
 
 ## Compatibility
 

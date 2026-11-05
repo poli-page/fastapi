@@ -1,0 +1,23 @@
+---
+title: SDK
+description: The Python SDK under poli-page-fastapi, and where its documentation lives.
+---
+
+`poli-page-fastapi` wraps the Poli Page Python SDK, [`poli-page`](https://pypi.org/project/poli-page/). The client you inject with `Depends(get_poli_page_client)` is the SDK's own `PoliPage` object, so the SDK's documentation covers every method and type behind `client.render` and `client.documents`.
+
+→ **Python SDK documentation**: https://poli-page.github.io/sdk-python/
+
+## Versions
+
+The package requires `poli-page>=0.13,<0.14`, the same major.minor as itself: both share the major.minor of the Poli Page API.
+
+| `poli-page-fastapi` | `poli-page` | FastAPI | Python |
+| --- | --- | --- | --- |
+| `0.13.x` | `0.13.x` | `>=0.100,<1.0` (CI: 0.100, 0.110) | 3.11, 3.12, 3.13 |
+
+## Where to look
+
+- Render input, render methods and stored documents: the SDK's [Quick start](https://poli-page.github.io/sdk-python/getting-started/quick-start/) and [Render modes](https://poli-page.github.io/sdk-python/concepts/render-modes/) pages.
+- Output handling and files: the SDK's [Output handling](https://poli-page.github.io/sdk-python/concepts/output-handling/) page.
+- Retries, timeouts and idempotency: the SDK's [Retries and idempotency](https://poli-page.github.io/sdk-python/production/retries-and-idempotency/) page.
+- Every error code: the SDK's [Errors](https://poli-page.github.io/sdk-python/production/errors/) page.

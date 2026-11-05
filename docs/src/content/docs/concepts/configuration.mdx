@@ -1,0 +1,64 @@
+---
+title: Configuration
+description: The POLI_PAGE_* environment variables that PoliPageSettings reads, their ranges, and how to pass explicit settings.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`PoliPageSettings` reads the `POLI_PAGE_*` environment variables and maps them one to one onto the keyword arguments of the SDK's `PoliPage` client. A field you leave unset is not passed on, so the SDK applies its own default.
+
+## Options
+
+| Env var | Field | Type | Description |
+| --- | --- | --- | --- |
+| `POLI_PAGE_API_KEY` | `api_key` | `str` | Required. A missing or empty key makes building the client raise `PoliPageError`. |
+| `POLI_PAGE_BASE_URL` | `base_url` | `str` | Overrides the API base URL, for sandbox or regional endpoints. |
+| `POLI_PAGE_TIMEOUT` | `timeout` | `float` | Per-request timeout in seconds, greater than `0` and at most `600`. It also bounds the PDF download. |
+| `POLI_PAGE_MAX_RETRIES` | `max_retries` | `int` | Retries per failed request, from `0` to `10`. |
+| `POLI_PAGE_RETRY_DELAY` | `retry_delay` | `float` | Initial backoff in seconds, from `0` to `30`. |
+
+Names are case-insensitive. Unknown `POLI_PAGE_*` variables are ignored.
+
+A value outside its range raises a pydantic `ValidationError` when `PoliPageSettings` is built: for example `POLI_PAGE_TIMEOUT must be > 0 and <= 600 seconds.`, `POLI_PAGE_MAX_RETRIES must be between 0 and 10.` or `POLI_PAGE_RETRY_DELAY must be between 0 and 30 seconds.`.
+
+## The API key check
+
+The API is the only authority on keys. The package checks only that the key is set and not empty. A value that does not match `pp_{environment}_{32 lowercase hex}` logs one warning on the `poli_page_fastapi.settings` logger. The warning names the expected format and shows no part of the key, and the client starts anyway: the API answers `401 INVALID_API_KEY`, or `401 MISSING_API_KEY` for a value without `pp_`.
+
+A key passed explicitly (`PoliPageSettings(api_key=...)`) gets the same check. When that explicit value is `None` or empty, the client is built without a key and the SDK reads `POLI_PAGE_API_KEY` itself, so that variable is checked instead.
+
+<Aside type="caution">
+The download of a PDF is bounded by `POLI_PAGE_TIMEOUT`. A download that outlasts it raises `DOWNLOAD_FAILED`, answered with status `500`, not `timeout`.
+</Aside>
+
+## Explicit settings
+
+Pass a `PoliPageSettings` instance to `PoliPageDependency` to give one router or one route its own settings, instead of the environment. `PoliPageSettings` still reads any field you leave out from the environment.
+
+## Example
+
+```python
+# main.py
+import os
+
+from fastapi import Depends, FastAPI
+from poli_page import PoliPage
+
+from poli_page_fastapi import PoliPageDependency, PoliPageSettings, setup_poli_page
+
+app = FastAPI()
+setup_poli_page(app)
+
+sandbox = PoliPageDependency(
+    settings=PoliPageSettings(api_key=os.environ["POLI_PAGE_API_KEY"], timeout=30),
+)
+
+
+@app.get("/health/poli-page")
+def health(client: PoliPage = Depends(sandbox)) -> dict[str, str]:
+    return {"client": type(client).__name__}
+```
+
+## See also
+- [Client access](../client-access/)
+- [API reference](../../reference/api/)

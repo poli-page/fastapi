@@ -1,0 +1,52 @@
+---
+title: Client access
+description: Reach the Poli Page client from FastAPI routes with Depends, build a per-router client, and know when it is closed.
+---
+
+Routes reach the SDK's `PoliPage` client through FastAPI's dependency injection. There is one process-wide client for the common case, and a class-based dependency for a client with its own settings.
+
+## The shared client
+
+`get_poli_page_client` is the canonical `Depends(...)` target. It builds a `PoliPage` from `PoliPageSettings` on first use and memoises it with `functools.lru_cache`, so every route in the process gets the same instance.
+
+`setup_poli_page(app)` builds it at startup, so a missing API key stops the app at startup rather than on the first request, and closes it at shutdown. If you manage the lifespan yourself, `poli_page_lifespan` does the same: `FastAPI(lifespan=poli_page_lifespan)`. Use either `setup_poli_page` or `poli_page_lifespan`, not both, or the client lifespan runs twice.
+
+## A client with its own settings
+
+`PoliPageDependency` is a callable that builds its own client the first time a request needs it and keeps it. Give it a `PoliPageSettings`, or an existing `PoliPage` client. Its `close()` method closes the client it holds and forgets it. The shared client's lifespan does not close it, so call `close()` yourself on shutdown.
+
+## Sync and async routes
+
+The client is synchronous. A `def` route runs in FastAPI's threadpool, which is where a render belongs. In an `async def` route, run the call with `run_in_threadpool` so it does not block the event loop.
+
+## Example
+
+```python
+# main.py
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+from fastapi.concurrency import run_in_threadpool
+from poli_page import PoliPage
+
+from poli_page_fastapi import PdfResponse, get_poli_page_client, setup_poli_page
+
+app = FastAPI()
+setup_poli_page(app)
+
+Client = Annotated[PoliPage, Depends(get_poli_page_client)]
+
+
+@app.get("/welcome.pdf")
+async def welcome(client: Client) -> PdfResponse:
+    pdf = await run_in_threadpool(
+        client.render.pdf,
+        {"project": "getting-started", "template": "welcome", "data": {"name": "World"}},
+    )
+    return PdfResponse(pdf, filename="welcome.pdf")
+```
+
+## See also
+- [Configuration](../configuration/)
+- [Responses](../responses/)
+- [Testing](../../production/testing/)
