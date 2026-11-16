@@ -37,7 +37,7 @@ This package exposes the Poli Page Python SDK as a FastAPI dependency: a memoise
 - Python 3.11, 3.12, or 3.13
 - FastAPI `>=0.100,<1.0`
 - Pydantic v2 and pydantic-settings v2
-- The `poli-page` Python SDK 0.13.x (installed with the package, `poli-page>=0.13,<0.14`)
+- The `poli-page` Python SDK 0.15.x (installed with the package, `poli-page>=0.15,<0.16`)
 
 ## Install
 
@@ -45,7 +45,7 @@ This package exposes the Poli Page Python SDK as a FastAPI dependency: a memoise
 pip install poli-page-fastapi
 ```
 
-This installs the `poli-page` SDK 0.13.x with it.
+This installs the `poli-page` SDK 0.15.x with it.
 
 Set the API key in your environment before the app starts:
 
@@ -226,9 +226,10 @@ Open <http://localhost:8000>.
 
 | Package version | `poli-page` SDK | FastAPI                | Python              |
 | --------------- | --------------- | ---------------------- | ------------------- |
+| 0.15.x          | 0.15.x          | `^0.100`, `^0.110`     | 3.11, 3.12, 3.13    |
 | 0.13.x          | 0.13.x          | `^0.100`, `^0.110`     | 3.11, 3.12, 3.13    |
 
-Tested against the FastAPI versions listed above; other 0.x releases in that range are expected to work. The package shares its major.minor with the Poli Page API and requires the SDK of the same minor: `poli-page>=0.13,<0.14`.
+Tested against the FastAPI versions listed above; other 0.x releases in that range are expected to work. The package shares its major.minor with the Poli Page API and requires the SDK of the same minor: `poli-page>=0.15,<0.16`.
 
 ## Contributing
 

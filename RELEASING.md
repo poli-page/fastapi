@@ -4,7 +4,7 @@ The package is published to PyPI as [`poli-page-fastapi`](https://pypi.org/proje
 
 ## Versions
 
-`poli-page-fastapi` shares its major.minor with the Poli Page API: package `0.13.x` talks to API `0.13`, passes the [API contract](https://github.com/poli-page/api-contract) `v0.13.0`, and requires the `poli-page` SDK of the same minor (`poli-page>=0.13,<0.14`). Patch numbers are free: a fix to the package alone is a patch, whatever the API's or the SDK's patch. A change of the API contract, a new feature, and a raise of the minimum Python or FastAPI version are each a minor. The package may skip minors when it has nothing to ship for one. The Release workflow refuses a version whose major.minor differs from the contract version pinned in `.github/workflows/ci.yml` or from the `poli-page` requirement in `pyproject.toml` and `example-app/pyproject.toml`.
+`poli-page-fastapi` shares its major.minor with the Poli Page API: package `0.15.x` talks to API `0.15`, passes the [API contract](https://github.com/poli-page/api-contract) `v0.15.0`, and requires the `poli-page` SDK of the same minor (`poli-page>=0.15,<0.16`). Patch numbers are free: a fix to the package alone is a patch, whatever the API's or the SDK's patch. A change of the API contract, a new feature, and a raise of the minimum Python or FastAPI version are each a minor. The package may skip minors when it has nothing to ship for one. The Release workflow refuses a version whose major.minor differs from the contract version pinned in `.github/workflows/ci.yml` or from the `poli-page` requirement in `pyproject.toml` and `example-app/pyproject.toml`.
 
 ## What the workflow does
 
