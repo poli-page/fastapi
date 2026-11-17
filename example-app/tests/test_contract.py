@@ -39,7 +39,7 @@ from mock_api import ContractError, MockServer, RecordedRequest, substitute
 
 from poli_page_fastapi import get_poli_page_client
 
-KNOWN_FORMAT_VERSION = 1
+KNOWN_FORMAT_VERSION = 2
 
 #: The app's key in every case: a well-formed sandbox key (`pp_sandbox_` + 32 hex).
 TEST_API_KEY = "pp_sandbox_0123456789abcdef0123456789abcdef"
