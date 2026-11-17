@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.15.0] - 2026-11-16
+## [0.15.0] - 2026-11-17
 
 ### Changed
 - Requires the `poli-page` SDK 0.15 (`poli-page>=0.15,<0.16`) and passes the Poli Page API contract v0.15.0. The contract's integration cases (`impl.*`) are unchanged from v0.13.0.
