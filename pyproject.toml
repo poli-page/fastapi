@@ -30,7 +30,7 @@ dependencies = [
     "anyio>=3.7",
     "pydantic>=2.0,<3",
     "pydantic-settings>=2.0,<3",
-    "poli-page>=0.13,<0.14",
+    "poli-page>=0.15,<0.16",
 ]
 
 [project.optional-dependencies]

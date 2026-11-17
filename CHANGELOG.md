@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-17
+
+### Changed
+- Requires the `poli-page` SDK 0.15 (`poli-page>=0.15,<0.16`) and passes the Poli Page API contract v0.15.0. The contract's integration cases (`impl.*`) are unchanged from v0.13.0.
+
 ## [0.13.0] - 2026-11-04
 
 First release on PyPI. It requires the `poli-page` SDK 0.13 (`poli-page>=0.13,<0.14`) and passes the Poli Page API contract v0.13.0. The package shares its major.minor with the Poli Page API, so its first version is 0.13.0; a 0.11.0 was prepared and never published. The Changed, Removed and Fixed entries below describe changes made while it was prepared.
@@ -71,5 +76,6 @@ First release on PyPI. It requires the `poli-page` SDK 0.13 (`poli-page>=0.13,<0
 - Pydantic v2 + pydantic-settings v2
 - `poli-page>=0.13,<0.14`
 
-[Unreleased]: https://github.com/poli-page/fastapi/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/poli-page/fastapi/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/poli-page/fastapi/compare/v0.13.0...v0.15.0
 [0.13.0]: https://github.com/poli-page/fastapi/releases/tag/v0.13.0
